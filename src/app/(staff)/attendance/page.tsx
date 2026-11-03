@@ -3,6 +3,7 @@ import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { approvedWeeks, recalculate, sessionNights } from "@/lib/attendance";
+import { parshaOfWeek } from "@/lib/hebrew";
 import { weekStartOf } from "@/lib/engine";
 import { addDays, type NightStatus } from "@/lib/rules";
 import { Notice, PageTitle } from "@/components/Notice";
@@ -46,6 +47,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
           <Link className="btn-secondary" href={`/attendance?week=${addDays(week, 7)}`}>Next →</Link>
         </div>
       </PageTitle>
+      <p className="-mt-4 mb-4 text-lg text-gray-700" dir="rtl">{parshaOfWeek(week)}</p>
       <Notice error={typeof sp.error === "string" ? sp.error : undefined} />
 
       <div className="card mb-4 flex flex-wrap items-center gap-4">

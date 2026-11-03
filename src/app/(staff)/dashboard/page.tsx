@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
-import { nightsInfo } from "@/lib/hebrew";
+import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
 import { isSessionNight, minutesToLabel, timeToMinutes } from "@/lib/rules";
 import { PageTitle } from "@/components/Notice";
 
@@ -42,6 +42,7 @@ export default async function Dashboard() {
             )}
             {day?.is_test_date && <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-sm text-amber-800">Test night</span>}
           </p>
+          <p className="mt-1 text-gray-700" dir="rtl">{parshaOfWeek(today)}</p>
           {info.holidays.length > 0 && <p className="mt-2 text-sm text-gray-600">{info.holidays.join(" · ")}</p>}
           <p className="mt-3 text-sm">
             <span className="text-gray-500">Learning tonight: </span>

@@ -1,7 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
-import { nightsInfo } from "@/lib/hebrew";
+import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
 import { addDays, isSessionNight, localParts, minutesToLabel, testRateApplies, type NightStatus } from "@/lib/rules";
 import { StatusChip } from "@/components/StatusChip";
 import { signOut } from "../login/actions";
@@ -63,7 +63,7 @@ export default async function StudentHome() {
       </div>
 
       <div className="card">
-        <h2 className="mb-3 font-semibold">Upcoming nights</h2>
+        <h2 className="mb-3 flex justify-between font-semibold">Upcoming nights <span className="font-normal text-gray-600" dir="rtl">{parshaOfWeek(today)}</span></h2>
         <ul className="divide-y text-sm">
           {upcoming.map((d) => (
             <li key={d} className="flex justify-between gap-3 py-2">

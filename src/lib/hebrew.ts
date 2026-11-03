@@ -1,5 +1,5 @@
-import { HDate, HebrewCalendar, flags, type Event } from "@hebcal/core";
-import { addDays } from "./rules";
+import { HDate, HebrewCalendar, Locale, ParshaEvent, flags, getSedra, type Event } from "@hebcal/core";
+import { addDays, weekday } from "./rules";
 
 export interface NightInfo {
   date: string; // English date of the evening, "YYYY-MM-DD"
@@ -54,4 +54,15 @@ export function nightsInfo(start: string, end: string): Map<string, NightInfo> {
     });
   }
   return out;
+}
+
+/**
+ * The parsha of the week containing `date` (the Shabbat that ends that Sunday–Shabbat week),
+ * in Hebrew, e.g. "פרשת חיי שרה". On a Yom Tov Shabbat, the name of the Yom Tov.
+ */
+export function parshaOfWeek(date: string): string {
+  const shabbat = addDays(date, 6 - weekday(date));
+  const hd = new HDate(toDate(shabbat));
+  const r = getSedra(hd.getFullYear(), false).lookup(hd);
+  return r.chag ? Locale.gettext(r.parsha[0], "he-x-NoNikud") : new ParshaEvent(r).render("he-x-NoNikud");
 }

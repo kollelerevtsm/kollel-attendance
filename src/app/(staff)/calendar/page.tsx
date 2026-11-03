@@ -2,8 +2,9 @@ import Link from "next/link";
 import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
-import { nightsInfo } from "@/lib/hebrew";
-import { addDays, isSessionNight } from "@/lib/rules";
+import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
+import { addDays, isSessionNight, weekday } from "@/lib/rules";
+import { Fragment } from "react";
 import { PageTitle } from "@/components/Notice";
 import { updateDay } from "./actions";
 
@@ -67,7 +68,13 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
               const on = isSessionNight(d, settings.session_weekdays, o?.is_session, n.suggestedOff);
               const overridden = o?.is_session === true || o?.is_session === false;
               return (
-                <tr key={d} className={`border-b last:border-0 align-top ${d === today ? "bg-blue-50" : on ? "" : "bg-gray-50 text-gray-500"}`}>
+                <Fragment key={d}>
+                {(d === start || weekday(d) === 0) && (
+                  <tr className="border-b bg-gray-100">
+                    <td colSpan={5} className="px-3 py-1.5 text-right font-semibold text-gray-700" dir="rtl">{parshaOfWeek(d)}</td>
+                  </tr>
+                )}
+                <tr className={`border-b last:border-0 align-top ${d === today ? "bg-blue-50" : on ? "" : "bg-gray-50 text-gray-500"}`}>
                   <td className="px-3 py-2 whitespace-nowrap font-medium">{formatDate(d)}</td>
                   <td className="px-3 py-2">
                     <div dir="rtl" className="text-right md:text-left">{n.hebrewDate}</div>
@@ -112,6 +119,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
                     )}
                   </td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>
