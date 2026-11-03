@@ -10,8 +10,8 @@ export interface CalendarRow {
   sync_topic?: string | null;
 }
 
-/** Schedule types that mean "no learning tonight" (Yom Tov, Chol Hamoed). */
-export const OFF_TYPES = ["yt", "ycd"];
+/** Schedule types that mean "no learning tonight" (Yom Tov). Chol Hamoed stays on. */
+export const OFF_TYPES = ["yt"];
 
 /** The on/off override for isSessionNight(): principal's choice, else off for Yom Tov days in the schedule. */
 export function sessionOverride(row: CalendarRow | undefined): boolean | null {
