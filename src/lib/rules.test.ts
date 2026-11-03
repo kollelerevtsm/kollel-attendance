@@ -103,3 +103,11 @@ describe("nightsInfo", () => {
     expect(info.get("2026-09-20")!.hebrewDate).toContain("תשרי");
   });
 });
+
+import { zonedTimeToDate } from "./rules";
+describe("zonedTimeToDate", () => {
+  it("converts New York evening times", () => {
+    expect(zonedTimeToDate("2026-11-09", "21:35", "America/New_York").toISOString()).toBe("2026-11-10T02:35:00.000Z");
+    expect(zonedTimeToDate("2026-07-09", "21:35", "America/New_York").toISOString()).toBe("2026-07-10T01:35:00.000Z");
+  });
+});

@@ -63,9 +63,11 @@ export default async function Dashboard() {
           </div>
         </div>
       </div>
-      <p className="mt-6 text-sm text-gray-500">
-        Nightly attendance, approvals and payroll will appear here once the scanner is connected.
-      </p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link className="btn" href="/attendance">This week&apos;s attendance</Link>
+        {session && <Link className="btn-secondary" href={`/attendance/night/${today}`}>Tonight&apos;s scans</Link>}
+        <Link className="btn-secondary" href="/payroll">Payroll</Link>
+      </div>
     </>
   );
 }

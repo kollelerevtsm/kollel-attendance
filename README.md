@@ -10,16 +10,17 @@ Nightly attendance from the Anviz W1 Pro fingerprint scanner, pay calculation, p
 | --- | --- | --- |
 | 1 | Database, logins and roles, Settings, Students and PINs | Done |
 | 2 | Calendar with Hebrew dates, holidays, nights on/off, learning sessions, test dates | Done |
-| 3 | CrossChex webhook + nightly backup sync, attendance rules, fixing punches | Waiting for scanner and Developer Mode |
-| 4 | Test sheet, weekly approval, payroll list, marking periods paid | Next |
-| 5 | Student portal attendance and pay, go live | Partly done (portal shows rate, schedule and next test) |
+| 3 | Attendance rules, fixing punches, scans entered by hand | Done |
+| 3b | CrossChex webhook + nightly backup sync | Waiting for scanner and Developer Mode |
+| 4 | Test sheet, weekly approval, payroll list, check numbers, print, Excel export | Done |
+| 5 | Student portal: attendance with reasons, payments | Done |
 
 ## One-time setup
 
 ### 1. Supabase database
 
 1. Open your Supabase project → **SQL Editor** → **New query**.
-2. Paste all of `supabase/migrations/0001_initial.sql` and click **Run**.
+2. Paste all of `supabase/migrations/0001_initial.sql` and click **Run**. Then do the same with `0002_attendance_payroll.sql`.
 3. Make yourself the first admin. Run this with your own login email:
    ```sql
    insert into staff_invites (email, role, full_name) values ('your@email.com', 'admin', 'Your Name');

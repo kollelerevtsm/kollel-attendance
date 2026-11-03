@@ -4,8 +4,11 @@ import { signOut } from "../login/actions";
 
 const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
   { href: "/dashboard", label: "Dashboard", roles: ["admin", "principal", "payroll"] },
+  { href: "/attendance", label: "Attendance", roles: ["admin", "principal", "payroll"] },
   { href: "/students", label: "Students", roles: ["admin", "principal", "payroll"] },
   { href: "/calendar", label: "Calendar", roles: ["admin", "principal", "payroll"] },
+  { href: "/tests", label: "Test sheet", roles: ["admin", "principal", "payroll"] },
+  { href: "/payroll", label: "Payroll", roles: ["admin", "principal", "payroll"] },
   { href: "/settings", label: "Settings", roles: ["admin", "principal"] },
   { href: "/staff", label: "Staff logins", roles: ["admin"] },
 ];
@@ -16,7 +19,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const profile = await requireRole(...STAFF);
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-gray-200 bg-white">
+      <header className="border-b border-gray-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link href="/dashboard" className="font-semibold" dir="rtl">כולל ערב תורתך שעשועי</Link>
           <nav className="flex flex-wrap gap-4 text-sm">

@@ -2,7 +2,8 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { nightsInfo } from "@/lib/hebrew";
-import { addDays, isSessionNight, testRateApplies } from "@/lib/rules";
+import { addDays, isSessionNight, localParts, minutesToLabel, testRateApplies, type NightStatus } from "@/lib/rules";
+import { StatusChip } from "@/components/StatusChip";
 import { signOut } from "../login/actions";
 
 export default async function StudentHome() {
@@ -12,12 +13,18 @@ export default async function StudentHome() {
   const today = todayIn(settings.timezone);
   const until = addDays(today, 13);
 
-  const [{ data: student }, { data: days }, { data: tests }, { data: took }] = await Promise.all([
+  const [{ data: student }, { data: days }, { data: tests }, { data: took }, { data: nightsDone }, { data: payments }] = await Promise.all([
     supabase.from("students").select("first_name,last_name,pin").eq("id", me.student_id!).single(),
     supabase.from("calendar_days").select("*").gte("day", today).lte("day", until),
     supabase.from("calendar_days").select("day").eq("is_test_date", true).order("day"),
     supabase.from("test_takers").select("test_date").eq("student_id", me.student_id!),
+    supabase.from("attendance_nights").select("night,clock_in,clock_out,status,amount,reason")
+      .eq("student_id", me.student_id!).gte("night", addDays(today, -45)).order("night", { ascending: false }),
+    supabase.from("payments").select("amount,check_number,check_date,base_nights,test_nights,pay_periods(period_start,period_end)")
+      .eq("student_id", me.student_id!),
   ]);
+  const t = (iso: string | null) => (iso ? minutesToLabel(localParts(new Date(iso), settings.timezone).minutes) : "—");
+  const unpaidTotal = (nightsDone ?? []).reduce((s, n) => s + Number(n.amount), 0);
 
   const overrides = new Map((days ?? []).map((d) => [d.day as string, d]));
   const info = nightsInfo(today, until);
@@ -71,7 +78,39 @@ export default async function StudentHome() {
         </ul>
       </div>
 
-      <p className="text-center text-sm text-gray-500">Your attendance and pay will show here once the scanner is connected.</p>
+      <div className="card">
+        <h2 className="mb-3 font-semibold">My attendance (last 45 days)</h2>
+        <ul className="divide-y text-sm">
+          {(nightsDone ?? []).map((n) => (
+            <li key={n.night} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span className="w-28">{formatDate(n.night)}</span>
+              <span className="text-gray-600">{t(n.clock_in)} – {t(n.clock_out)}</span>
+              <StatusChip status={n.status as NightStatus} amount={Number(n.amount)} />
+              {n.status !== "paid" && <span className="w-full text-xs text-gray-500">{n.reason}</span>}
+            </li>
+          ))}
+          {(nightsDone ?? []).length === 0 && <li className="py-2 text-gray-500">No nights recorded yet.</li>}
+        </ul>
+        {(nightsDone ?? []).length > 0 && <p className="mt-2 text-right text-sm text-gray-600">Earned in the last 45 days: ${unpaidTotal.toFixed(2)}</p>}
+      </div>
+
+      <div className="card">
+        <h2 className="mb-3 font-semibold">My payments</h2>
+        <ul className="divide-y text-sm">
+          {(payments ?? []).map((p, i) => {
+            const period = (Array.isArray(p.pay_periods) ? p.pay_periods[0] : p.pay_periods) as { period_start: string; period_end: string } | null;
+            return (
+              <li key={i} className="flex flex-wrap justify-between gap-2 py-2">
+                <span>{period ? `${formatDate(period.period_start)} – ${formatDate(period.period_end)}` : ""}</span>
+                <span className="font-medium">${Number(p.amount).toFixed(2)}</span>
+                <span className="text-gray-600">Check #{p.check_number}{p.check_date ? `, ${formatDate(p.check_date)}` : ""}</span>
+              </li>
+            );
+          })}
+          {(payments ?? []).length === 0 && <li className="py-2 text-gray-500">No payments yet.</li>}
+        </ul>
+      </div>
+      <p className="text-center text-xs text-gray-500">If something looks wrong, please speak to the principal.</p>
     </main>
   );
 }

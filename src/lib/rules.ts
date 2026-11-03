@@ -149,8 +149,11 @@ export function computeNight(input: {
   settings: Settings;
   tookTestTonight: boolean;
   testRateActive: boolean;
+  /** Times entered by the principal; these replace the scanner's clock-in / clock-out. */
+  manualIn?: Date | null;
+  manualOut?: Date | null;
 }): NightResult {
-  const { night, scans, settings, tookTestTonight, testRateActive } = input;
+  const { night, scans, settings, tookTestTonight, testRateActive, manualIn, manualOut } = input;
   const rate = testRateActive || tookTestTonight ? settings.test_rate : settings.base_rate;
 
   if (tookTestTonight) {
@@ -167,12 +170,14 @@ export function computeNight(input: {
 
   const opens = timeToMinutes(settings.clock_in_opens);
   const closes = timeToMinutes(settings.clock_out_closes);
-  const counted = scans
+  let counted = scans
     .filter((s) => {
       const p = localParts(s, settings.timezone);
       return p.date === night && p.minutes >= opens && p.minutes <= closes;
     })
     .sort((a, b) => a.getTime() - b.getTime());
+  if (manualIn) counted = [manualIn, ...counted.filter((s) => s > manualIn)];
+  if (manualOut) counted = [...counted.filter((s) => s < manualOut), manualOut];
 
   const none = { clockIn: null, clockOut: null, minutes: null, rate, amount: 0 };
 
@@ -208,3 +213,28 @@ export function computeNight(input: {
     reason: `Only ${minutes} min (${inLabel}–${outLabel}); ${settings.required_minutes} required`,
   };
 }
+
+/** "YYYY-MM-DD" + "HH:MM" in a time zone → the exact instant. */
+export function zonedTimeToDate(date: string, time: string, timeZone: string): Date {
+  const [y, m, d] = date.split("-").map(Number);
+  const [hh, mm] = time.split(":").map(Number);
+  const asUtc = Date.UTC(y, m - 1, d, hh, mm);
+  // Find the zone's offset at that moment, then correct (twice handles DST edges).
+  let guess = asUtc;
+  for (let i = 0; i < 2; i++) {
+    const p = localParts(new Date(guess), timeZone);
+    const [py, pm, pd] = p.date.split("-").map(Number);
+    const shown = Date.UTC(py, pm - 1, pd, Math.floor(p.minutes / 60), p.minutes % 60);
+    guess += asUtc - shown;
+  }
+  return new Date(guess);
+}
+
+export const STATUS_LABEL: Record<NightStatus, string> = {
+  paid: "Paid",
+  short: "Short",
+  absent: "Absent",
+  missing_in: "No clock-in",
+  missing_out: "No clock-out",
+  test: "Test",
+};
