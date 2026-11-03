@@ -20,7 +20,7 @@ Nightly attendance from the Anviz W1 Pro fingerprint scanner, pay calculation, p
 ### 1. Supabase database
 
 1. Open your Supabase project → **SQL Editor** → **New query**.
-2. Paste all of `supabase/migrations/0001_initial.sql` and click **Run**. Then do the same, in order, with `0002_attendance_payroll.sql`, `0003_torahscha_sync.sql`, `0004_special_days.sql` and `0005_holidays_daf.sql`.
+2. Paste all of `supabase/migrations/0001_initial.sql` and click **Run**. Then do the same, in order, with `0002_attendance_payroll.sql`, `0003_torahscha_sync.sql`, `0004_special_days.sql`, `0005_holidays_daf.sql` and `0006_two_step.sql`.
 3. Make yourself the first admin. Run this with your own login email:
    ```sql
    insert into staff_invites (email, role, full_name) values ('your@email.com', 'admin', 'Your Name');
@@ -39,6 +39,9 @@ Nightly attendance from the Anviz W1 Pro fingerprint scanner, pay calculation, p
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API Keys → the **anon / publishable** key (never the service_role / secret key) |
 | `NEXT_PUBLIC_SITE_URL` | Your Vercel address, for example `https://kollel-attendance.vercel.app` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Added by the Supabase–Vercel connection |
+| `SMTP_USER` | The Gmail address that sends sign-in codes |
+| `SMTP_PASS` | That Gmail account's 16-letter app password |
 
 3. Click **Deploy**. Every change pushed to GitHub deploys automatically after that.
 

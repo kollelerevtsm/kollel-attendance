@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isVerified } from "@/lib/twoStep";
 import { Notice } from "@/components/Notice";
 import { setPassword, signOut } from "../login/actions";
 
@@ -7,6 +8,7 @@ export default async function SetPasswordPage({ searchParams }: PageProps<"/set-
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/login");
+  if (!(await isVerified(data.user.id))) redirect("/verify");
   const sp = await searchParams;
   const changing = data.user.user_metadata?.password_set === true;
 

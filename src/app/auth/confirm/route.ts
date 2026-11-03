@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { markVerified } from "@/lib/twoStep";
 
 // The sign-in link from the email lands here.
 export async function GET(request: NextRequest) {
@@ -17,6 +18,12 @@ export async function GET(request: NextRequest) {
     ({ error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type }));
   } else {
     error = { message: "The sign-in link is incomplete." };
+  }
+
+  // Clicking the emailed link proves they have the email, so it counts as the second step for this visit.
+  if (!error) {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) await markVerified(data.user.id, false);
   }
 
   const dest = new URL(error ? `/login?error=${encodeURIComponent("That link expired or was already used. Please request a new one.")}` : "/", url.origin);

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
+import { isVerified } from "./twoStep";
 
 export type Role = "admin" | "principal" | "payroll" | "student";
 
@@ -18,6 +19,8 @@ export async function getProfile(): Promise<Profile | null> {
   if (!auth.user) return null;
   // Everyone must have created a password (after verifying their email, or after "forgot password").
   if (auth.user.user_metadata?.password_set !== true) redirect("/set-password");
+  // Two-step verification: an emailed code, unless this browser is verified.
+  if (!(await isVerified(auth.user.id))) redirect("/verify");
   let { data } = await supabase.from("profiles").select("*").eq("id", auth.user.id).maybeSingle();
   if (!data) {
     // Invited or added as a student after their first sign-in.

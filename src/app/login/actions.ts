@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { clearSessionVerification, isVerified } from "@/lib/twoStep";
 
 const back = (mode: string, params: Record<string, string>) =>
   redirect(`/login?${new URLSearchParams({ ...(mode ? { mode } : {}), ...params }).toString()}`);
@@ -68,6 +69,7 @@ export async function setPassword(formData: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) redirect("/login");
+  if (!(await isVerified(data.user.id))) redirect("/verify");
   const { error } = await supabase.auth.updateUser({ password, data: { password_set: true } });
   if (error) {
     fail(/same|different/i.test(error.message) ? "Choose a password different from your old one." : error.message);
@@ -78,5 +80,6 @@ export async function setPassword(formData: FormData) {
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await clearSessionVerification();
   redirect("/login");
 }
