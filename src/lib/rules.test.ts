@@ -133,3 +133,17 @@ describe("hebrewMonthRange", () => {
     expect(hebrewMonthRange(r.prev, "2026-11-03").title).toBe("תשרי תשפ״ז");
   });
 });
+
+describe("holiday categories", () => {
+  it("finds Chanukah, Purim and Chol Hamoed nights and turns off only the chosen ones", () => {
+    const info = nightsInfo("2026-12-03", "2026-12-06", ["yomtov", "chanukah"]);
+    expect(info.get("2026-12-04")!.categories).toContain("chanukah");
+    expect(info.get("2026-12-04")!.suggestedOff).toBe(true);
+    expect(info.get("2026-12-03")!.suggestedOff).toBe(false);
+    const purim = nightsInfo("2027-03-22", "2027-03-22", ["yomtov"]).get("2027-03-22")!;
+    expect(purim.categories).toContain("purim");
+    expect(purim.suggestedOff).toBe(false);
+    expect(nightsInfo("2027-04-25", "2027-04-25").get("2027-04-25")!.categories).toContain("cholhamoed");
+    expect(nightsInfo("2027-04-29", "2027-04-29").get("2027-04-29")!.categories).toContain("motzei_yomtov");
+  });
+});

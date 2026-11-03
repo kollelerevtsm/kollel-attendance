@@ -12,7 +12,7 @@ export async function sessionNights(start: string, end: string): Promise<string[
   const settings = await getSettings();
   const { data } = await supabase.from("calendar_days").select("day,is_session,learning_topic,is_test_date,sync_type").gte("day", start).lte("day", end);
   const overrides = new Map((data ?? []).map((d) => [d.day as string, sessionOverride(d as CalendarRow)]));
-  const info = nightsInfo(start, end);
+  const info = nightsInfo(start, end, settings.off_holidays);
   const out: string[] = [];
   for (let d = start; d <= end; d = addDays(d, 1)) {
     if (isSessionNight(d, settings.session_weekdays, overrides.get(d), info.get(d)!.suggestedOff)) out.push(d);

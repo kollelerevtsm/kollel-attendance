@@ -3,16 +3,16 @@ import { requireRole, STAFF } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
-import { isSessionNight, minutesToLabel, timeToMinutes } from "@/lib/rules";
+import { minutesToLabel, timeToMinutes } from "@/lib/rules";
 import { PageTitle } from "@/components/Notice";
-import { sessionOverride, topicOf } from "@/lib/calendarDay";
+import { loadCalendar } from "@/lib/calendarData";
 
 export default async function Dashboard() {
   await requireRole(...STAFF);
   const supabase = await createClient();
   const settings = await getSettings();
   const today = todayIn(settings.timezone);
-  const info = nightsInfo(today, today).get(today)!;
+  const info = nightsInfo(today, today, settings.off_holidays).get(today)!;
 
   const [{ data: day }, { count: activeCount }, { count: noPrint }, { data: nextTest }] = await Promise.all([
     supabase.from("calendar_days").select("*").eq("day", today).maybeSingle(),
@@ -21,7 +21,8 @@ export default async function Dashboard() {
     supabase.from("calendar_days").select("day").eq("is_test_date", true).gte("day", today).order("day").limit(1).maybeSingle(),
   ]);
 
-  const session = isSessionNight(today, settings.session_weekdays, sessionOverride(day ?? undefined), info.suggestedOff);
+  const cal = await loadCalendar(today, today);
+  const session = cal.isOn(today);
 
   return (
     <>
@@ -47,7 +48,7 @@ export default async function Dashboard() {
           {info.holidays.length > 0 && <p className="mt-2 text-sm text-gray-600">{info.holidays.join(" · ")}</p>}
           <p className="mt-3 text-sm">
             <span className="text-gray-500">Learning tonight: </span>
-            {topicOf(day ?? undefined) || <span className="text-gray-400">not set</span>}
+            {cal.topic(today) || <span className="text-gray-400">not set</span>}
           </p>
         </div>
         <div className="card space-y-3">

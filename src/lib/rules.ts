@@ -14,6 +14,10 @@ export interface Settings {
   pay_period: PayPeriod;
   session_weekdays: number[]; // 0 = Sunday
   timezone: string;
+  off_holidays?: string[];
+  daf_start_masechta?: string | null;
+  daf_start_daf?: number | null;
+  daf_start_date?: string | null;
 }
 
 // ── PINs ─────────────────────────────────────────────────────

@@ -2,6 +2,8 @@ import { requireRole, MANAGERS } from "@/lib/auth";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { addDays } from "@/lib/rules";
 import { COLORS, type DayType, type SpecialPeriod } from "@/lib/specialDays";
+import { HOLIDAY_CATEGORIES } from "@/lib/hebrew";
+import { MASECHTOS } from "@/lib/daf";
 import { createClient } from "@/lib/supabase/server";
 import { Notice, PageTitle } from "@/components/Notice";
 import { addSpecialPeriod, deleteDayType, deleteSpecialPeriod, saveDayType, saveSettings } from "./actions";
@@ -87,6 +89,44 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             </div>
           </div>
           <p className="text-xs text-gray-500">Rate changes apply going forward. Nights already approved keep their rate.</p>
+        </section>
+
+        <section id="holidays" className="card space-y-3">
+          <h2 className="font-semibold">Nights off for holidays</h2>
+          <p className="text-sm text-gray-600">Ticked nights are off automatically every year. You can still turn any single night on or off on the Calendar.</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {HOLIDAY_CATEGORIES.map((c) => (
+              <label key={c.key} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="off_holidays" value={c.key} defaultChecked={(s.off_holidays ?? ["yomtov"]).includes(c.key)} />
+                {c.label}
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section id="daf" className="card space-y-3">
+          <h2 className="font-semibold">Daf schedule</h2>
+          <p className="text-sm text-gray-600">
+            Enter where the learning is on one night; the calendar fills in one daf per session night from there, skipping nights off,
+            review nights and test nights. If the kollel gets out of step, change the starting point to the correct daf on a recent night.
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <label className="label" htmlFor="daf_start_masechta">Masechta</label>
+              <select className="input" id="daf_start_masechta" name="daf_start_masechta" defaultValue={s.daf_start_masechta ?? ""}>
+                <option value="">— not set —</option>
+                {MASECHTOS.map((m) => <option key={m.key} value={m.key}>{m.he} ({m.en})</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label" htmlFor="daf_start_daf">Daf</label>
+              <input className="input" type="number" min={2} max={176} id="daf_start_daf" name="daf_start_daf" defaultValue={s.daf_start_daf ?? ""} />
+            </div>
+            <div>
+              <label className="label" htmlFor="daf_start_date">Learned on the night of</label>
+              <input className="input" type="date" id="daf_start_date" name="daf_start_date" defaultValue={s.daf_start_date ?? ""} />
+            </div>
+          </div>
         </section>
 
         <button className="btn" type="submit">Save settings</button>

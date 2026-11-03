@@ -9,6 +9,16 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function updateDay(formData: FormData) {
   const me = await requireRole(...MANAGERS);
+  if (String(formData.get("op")) === "test_many") {
+    const days = formData.getAll("days").map(String).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    for (const d of days) {
+      const fd = new FormData();
+      fd.set("day", d);
+      fd.set("op", "test_on");
+      await updateDay(fd);
+    }
+    return;
+  }
   const day = String(formData.get("day"));
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("Bad date");
   const supabase = await createClient();
@@ -19,6 +29,7 @@ export async function updateDay(formData: FormData) {
     is_session: existing?.is_session ?? null,
     learning_topic: existing?.learning_topic ?? null,
     is_test_date: existing?.is_test_date ?? false,
+    is_review: existing?.is_review ?? false,
     updated_by: me.id,
   };
 
@@ -28,6 +39,8 @@ export async function updateDay(formData: FormData) {
   else if (op === "session_default") row.is_session = null;
   else if (op === "test_on") row.is_test_date = true;
   else if (op === "test_off") row.is_test_date = false;
+  else if (op === "review_on") row.is_review = true;
+  else if (op === "review_off") row.is_review = false;
   else if (op === "topic") row.learning_topic = String(formData.get("learning_topic") ?? "").trim() || null;
 
   const { error } = await supabase.from("calendar_days").upsert(row);

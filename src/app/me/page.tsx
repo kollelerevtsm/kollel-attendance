@@ -2,9 +2,9 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
-import { addDays, isSessionNight, localParts, minutesToLabel, testRateApplies, type NightStatus } from "@/lib/rules";
+import { addDays, localParts, minutesToLabel, testRateApplies, type NightStatus } from "@/lib/rules";
 import { StatusChip } from "@/components/StatusChip";
-import { sessionOverride, topicOf } from "@/lib/calendarDay";
+import { loadCalendar } from "@/lib/calendarData";
 import { signOut } from "../login/actions";
 
 export default async function StudentHome() {
@@ -28,14 +28,15 @@ export default async function StudentHome() {
   const unpaidTotal = (nightsDone ?? []).reduce((s, n) => s + Number(n.amount), 0);
 
   const overrides = new Map((days ?? []).map((d) => [d.day as string, d]));
-  const info = nightsInfo(today, until);
+  const cal = await loadCalendar(today, until);
+  const info = nightsInfo(today, until, settings.off_holidays);
   const testDates = (tests ?? []).map((t) => t.day as string);
   const testRate = testRateApplies(today, testDates, new Set((took ?? []).map((t) => t.test_date as string)));
   const nextTest = testDates.find((d) => d >= today);
 
   const upcoming: string[] = [];
   for (let d = today; d <= until; d = addDays(d, 1)) {
-    if (isSessionNight(d, settings.session_weekdays, sessionOverride(overrides.get(d)), info.get(d)!.suggestedOff)) upcoming.push(d);
+    if (cal.isOn(d)) upcoming.push(d);
   }
 
   return (
@@ -72,7 +73,7 @@ export default async function StudentHome() {
                 {formatDate(d)} <span className="text-gray-500" dir="rtl">· {info.get(d)!.hebrewDate}</span>
                 {overrides.get(d)?.is_test_date && <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Test</span>}
               </span>
-              <span className="text-right text-gray-700" dir="auto">{topicOf(overrides.get(d)) ?? ""}</span>
+              <span className="text-right text-gray-700" dir="auto">{cal.topic(d) ?? ""}</span>
             </li>
           ))}
           {upcoming.length === 0 && <li className="py-2 text-gray-500">No sessions in the next two weeks.</li>}

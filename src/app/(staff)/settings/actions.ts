@@ -32,8 +32,19 @@ export async function saveSettings(formData: FormData) {
   const payPeriod = g("pay_period");
   if (!["weekly", "biweekly", "monthly"].includes(payPeriod)) fail("Choose a pay period.");
 
+  const offHolidays = formData.getAll("off_holidays").map(String);
+  const dafMasechta = g("daf_start_masechta") || null;
+  const dafNum = g("daf_start_daf") ? Number(g("daf_start_daf")) : null;
+  const dafDate = g("daf_start_date") || null;
+  if (dafMasechta && (!dafNum || !Number.isInteger(dafNum) || dafNum < 2 || !dafDate)) {
+    fail("For the daf schedule, fill in the masechta, a daf (2 or more) and the date it was learned.");
+  }
   const supabase = await createClient();
   const update = {
+    off_holidays: offHolidays,
+    daf_start_masechta: dafMasechta,
+    daf_start_daf: dafMasechta ? dafNum : null,
+    daf_start_date: dafMasechta ? dafDate : null,
     session_start: times[0],
     session_end: times[1],
     clock_in_opens: times[2],

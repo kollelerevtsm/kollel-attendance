@@ -3,13 +3,15 @@ import { Fragment } from "react";
 import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
-import { hebrewDayOfNight, hebrewMonthRange, nightsInfo, parshaOfWeek, type NightInfo } from "@/lib/hebrew";
-import { addDays, isSessionNight, minutesToLabel, timeToMinutes, weekday } from "@/lib/rules";
-import { syncSchedule, updateDay } from "./actions";
+import { hebrewDayOfNight, hebrewMonthRange, parshaOfWeek, type NightInfo } from "@/lib/hebrew";
+import { addDays, minutesToLabel, timeToMinutes, weekday } from "@/lib/rules";
+import { updateDay } from "./actions";
 import { COLORS, periodFor, type DayType, type SpecialPeriod } from "@/lib/specialDays";
-import { sessionOverride, topicOf, type CalendarRow } from "@/lib/calendarDay";
+import { type CalendarRow } from "@/lib/calendarDay";
+import { loadCalendar } from "@/lib/calendarData";
+import { suggestNextTest } from "@/lib/daf";
 
-type DayRow = CalendarRow;
+type DayRow = CalendarRow & { is_review?: boolean };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WEEKDAYS_HE = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש״ק"];
@@ -27,10 +29,9 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const href = (q: Record<string, string>) => "/calendar?" + new URLSearchParams({ view, hm: month.param, ...q }).toString();
 
   const supabase = await createClient();
-  const [{ data }, { data: tests }, { data: last }, { data: typeRows }, { data: periodRows }] = await Promise.all([
-    supabase.from("calendar_days").select("*").gte("day", start).lte("day", end),
+  const [cal, { data: tests }, { data: typeRows }, { data: periodRows }] = await Promise.all([
+    loadCalendar(start < today ? start : today, addDays(end > today ? end : today, 60)),
     supabase.from("calendar_days").select("day").eq("is_test_date", true).order("day"),
-    supabase.from("calendar_days").select("synced_at").not("synced_at", "is", null).order("synced_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("day_types").select("*").order("name"),
     supabase.from("special_periods").select("*").gte("end_date", addDays(today, -60)).order("start_date"),
   ]);
@@ -40,15 +41,18 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
     const p = periodFor(d, periods);
     return p ? dayTypes.find((t) => t.id === p.day_type_id) ?? null : null;
   };
-  const lastSync = (last?.synced_at as string | undefined) ?? null;
-  const overrides = new Map(((data ?? []) as DayRow[]).map((d) => [d.day, d]));
-  const info = nightsInfo(start, end);
+  const overrides = cal.rows as Map<string, DayRow>;
+  const info = cal.info;
   const testDates = (tests ?? []).map((t) => t.day as string);
   const shownTests = [...testDates.filter((d) => d < today).slice(-3), ...testDates.filter((d) => d >= today)];
 
   const days: string[] = [];
   for (let d = start; d <= end; d = addDays(d, 1)) days.push(d);
-  const isOn = (d: string) => isSessionNight(d, settings.session_weekdays, sessionOverride(overrides.get(d)), info.get(d)!.suggestedOff);
+  const isOn = cal.isOn;
+  const topic = cal.topic;
+  const lastPastTest = [...testDates].reverse().find((d) => d <= today) ?? null;
+  const nextSetTest = testDates.find((d) => d > today);
+  const suggested = nextSetTest ? null : suggestNextTest(lastPastTest, addDays(today, 1), isOn, addDays, weekday);
   const sessionCount = days.filter(isOn).length;
 
   return (
@@ -73,18 +77,6 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         </div>
       </div>
 
-      {canEdit && (
-        <form action={syncSchedule} className="mb-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
-          <span>
-            Daily learning, test dates and Yom Tov days come from torahscha.app automatically every morning
-            {lastSync ? ` (last update ${new Date(lastSync).toLocaleString("en-US", { timeZone: settings.timezone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })})` : ""}.
-          </span>
-          <button className="btn-secondary px-3 py-1" type="submit">Update now</button>
-          {typeof sp.synced === "string" && <span className="text-green-700">{sp.synced}</span>}
-          {typeof sp.sync_error === "string" && <span className="text-red-700">{sp.sync_error}</span>}
-        </form>
-      )}
-
       {/* Test dates */}
       <section className="card mb-4 flex flex-wrap items-center gap-3">
         <h2 className="font-semibold">Test dates</h2>
@@ -100,11 +92,20 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
             )}
           </span>
         ))}
+        {canEdit && suggested && (
+          <form action={updateDay} className="inline-flex items-center gap-2 rounded-full border border-dashed border-amber-400 px-3 py-1 text-sm">
+            <input type="hidden" name="day" value={suggested} />
+            Next test probably {formatDate(suggested, { weekday: "short", month: "short", day: "numeric" })}
+            <button className="font-medium text-blue-700 underline" name="op" value="test_on">Add</button>
+          </form>
+        )}
         {canEdit && (
-          <form action={updateDay} className="ml-auto flex items-center gap-2">
-            <input type="hidden" name="op" value="test_on" />
-            <input className="input w-40 py-1" type="date" name="day" required min={today} />
-            <button className="btn-secondary px-3 py-1" type="submit">Add test date</button>
+          <form action={updateDay} className="ml-auto flex flex-wrap items-center gap-2">
+            <input type="hidden" name="op" value="test_many" />
+            <input className="input w-40 py-1" type="date" name="days" required min={today} aria-label="Test date" />
+            <input className="input w-40 py-1" type="date" name="days" min={today} aria-label="Another test date" />
+            <input className="input w-40 py-1" type="date" name="days" min={today} aria-label="Another test date" />
+            <button className="btn-secondary px-3 py-1" type="submit">Add test dates</button>
           </form>
         )}
       </section>
@@ -116,16 +117,20 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       )}
 
       <p className="mb-4 text-sm text-gray-600">
-        {sessionCount} session nights this month. Each night shows the Hebrew date of that night, with the English date of the evening in small print. Nights before Yom Tov are off automatically;
-        {canEdit ? " click a night to turn it on or off or set the learning session." : ""}
+        {sessionCount} session nights this month. Each night shows the Hebrew date of that night, with the English date of the evening in small print.
+        Holiday nights are off according to <Link className="text-blue-700 underline" href="/settings#holidays">Settings</Link>
+        {settings.daf_start_date ? "; the daf fills in by itself from the starting point in Settings" : <>; set a <Link className="text-blue-700 underline" href="/settings#daf">daf starting point</Link> to fill in the daf automatically</>}.
+        {canEdit ? " Click a night to turn it on or off, mark it as a review night, or change its learning." : ""}
       </p>
 
       {view === "month" ? (
         <>
-          <MonthGrid days={days} start={start} today={today} selected={selected} isOn={isOn} overrides={overrides} info={info} typeOf={typeOf} dayHref={(d) => href({ day: d })} />
+          <MonthGrid days={days} start={start} today={today} selected={selected} isOn={isOn} overrides={overrides} info={info} typeOf={typeOf} topic={topic} dayHref={(d) => href({ day: d })} />
           {selected && (
             <DayEditor
               type={typeOf(selected)}
+              topic={topic(selected)}
+              autoDaf={cal.autoDaf(selected)}
               day={selected}
               on={isOn(selected)}
               row={overrides.get(selected)}
@@ -136,16 +141,16 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
           )}
         </>
       ) : (
-        <ListView days={days} start={start} today={today} isOn={isOn} overrides={overrides} info={info} canEdit={canEdit} typeOf={typeOf} />
+        <ListView days={days} start={start} today={today} isOn={isOn} overrides={overrides} info={info} canEdit={canEdit} typeOf={typeOf} topic={topic} />
       )}
     </>
   );
 }
 
-function MonthGrid({ days, start, today, selected, isOn, overrides, info, typeOf, dayHref }: {
+function MonthGrid({ days, start, today, selected, isOn, overrides, info, typeOf, topic, dayHref }: {
   days: string[]; start: string; today: string; selected: string | null;
   isOn: (d: string) => boolean; overrides: Map<string, DayRow>; info: Map<string, NightInfo>;
-  typeOf: (d: string) => DayType | null; dayHref: (d: string) => string;
+  typeOf: (d: string) => DayType | null; topic: (d: string) => string | null; dayHref: (d: string) => string;
 }) {
   const lead = weekday(start);
   const cells: (string | null)[] = [...Array(lead).fill(null), ...days];
@@ -184,7 +189,7 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, typeOf
                       {typeOf(d) && <div className={`mt-0.5 truncate rounded px-1 ${COLORS[typeOf(d)!.color] ?? COLORS.purple}`}>{typeOf(d)!.name}</div>}
                       {n.holidays.length > 0 && <div className="mt-0.5 truncate text-purple-700">{n.holidays.join(" · ")}</div>}
                       {o?.is_test_date && <div className="mt-0.5 rounded bg-amber-100 px-1 text-amber-800">Test</div>}
-                      {topicOf(o) && <div className={`mt-0.5 truncate ${on ? "text-gray-700" : "text-gray-400"}`} dir="auto">{topicOf(o)}</div>}
+                      {on && topic(d) && <div className={`mt-0.5 truncate ${o?.is_review ? "text-sky-700" : "text-gray-700"}`} dir="auto">{topic(d)}</div>}
                       {!on && <div className="mt-0.5">No session</div>}
                     </div>
                   </Link>
@@ -198,8 +203,9 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, typeOf
   );
 }
 
-function DayEditor({ day, on, row, info, canEdit, closeHref, type }: {
+function DayEditor({ day, on, row, info, canEdit, closeHref, type, topic, autoDaf }: {
   day: string; on: boolean; row?: DayRow; info: NightInfo; canEdit: boolean; closeHref: string; type: DayType | null;
+  topic: string | null; autoDaf: string | null;
 }) {
   const t = (v: string) => minutesToLabel(timeToMinutes(v));
   const overridden = row?.is_session === true || row?.is_session === false;
@@ -228,6 +234,11 @@ function DayEditor({ day, on, row, info, canEdit, closeHref, type }: {
             <input type="hidden" name="day" value={day} />
             <button className="btn-secondary px-3 py-1" name="op" value={on ? "session_off" : "session_on"}>Turn {on ? "off" : "on"}</button>
             {overridden && <button className="btn-secondary px-3 py-1" name="op" value="session_default">Reset to default</button>}
+            {on && (
+              <button className="btn-secondary px-3 py-1" name="op" value={row?.is_review ? "review_off" : "review_on"}>
+                {row?.is_review ? "Not a review night" : "Review night (no new daf)"}
+              </button>
+            )}
           </form>
         )}
       </div>
@@ -235,25 +246,21 @@ function DayEditor({ day, on, row, info, canEdit, closeHref, type }: {
         <form action={updateDay} className="flex max-w-xl gap-2">
           <input type="hidden" name="day" value={day} />
           <input type="hidden" name="op" value="topic" />
-          <input className="input" name="learning_topic" defaultValue={row?.learning_topic ?? ""} dir="auto" placeholder={row?.sync_topic ?? "Learning session, e.g. Bava Metzia 21a"} />
+          <input className="input" name="learning_topic" defaultValue={row?.learning_topic ?? ""} dir="auto" placeholder={autoDaf ?? row?.sync_topic ?? "Learning session, e.g. Bava Metzia 21a"} />
           <button className="btn" type="submit">Save</button>
         </form>
       ) : (
-        topicOf(row) && <p dir="auto">Learning: {topicOf(row)}</p>
+        topic && <p dir="auto">Learning: {topic}</p>
       )}
-      {row?.sync_topic && (
-        <p className="text-sm text-gray-500">
-          From torahscha.app: <span dir="rtl">{row.sync_topic}</span>
-          {canEdit && " — leave the box empty to use this, or type something else to replace it."}
-        </p>
-      )}
+      {canEdit && on && <p className="text-sm text-gray-600" dir="auto">Learning tonight: <strong>{topic ?? "—"}</strong>{!row?.learning_topic && autoDaf ? " (filled in automatically; type in the box to change it)" : ""}</p>}
     </section>
   );
 }
 
-function ListView({ days, start, today, isOn, overrides, info, canEdit, typeOf }: {
+function ListView({ days, start, today, isOn, overrides, info, canEdit, typeOf, topic }: {
   days: string[]; start: string; today: string; isOn: (d: string) => boolean;
   overrides: Map<string, DayRow>; info: Map<string, NightInfo>; canEdit: boolean; typeOf: (d: string) => DayType | null;
+  topic: (d: string) => string | null;
 }) {
   return (
     <div className="card overflow-x-auto p-0">
@@ -295,6 +302,7 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit, typeOf }
                         <input type="hidden" name="day" value={d} />
                         <button className="text-xs text-blue-700 underline" name="op" value={on ? "session_off" : "session_on"}>Turn {on ? "off" : "on"}</button>
                         {overridden && <button className="text-xs text-gray-500 underline" name="op" value="session_default">Reset</button>}
+                        {on && <button className="text-xs text-sky-700 underline" name="op" value={o?.is_review ? "review_off" : "review_on"}>{o?.is_review ? "Undo review" : "Review"}</button>}
                       </form>
                     )}
                   </td>
@@ -303,11 +311,11 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit, typeOf }
                       <form action={updateDay} className="flex gap-1">
                         <input type="hidden" name="day" value={d} />
                         <input type="hidden" name="op" value="topic" />
-                        <input className="input py-1" name="learning_topic" defaultValue={o?.learning_topic ?? ""} dir="auto" placeholder={o?.sync_topic ?? "e.g. Bava Metzia 21a"} />
+                        <input className="input py-1" name="learning_topic" defaultValue={o?.learning_topic ?? ""} dir="auto" placeholder={topic(d) ?? "e.g. Bava Metzia 21a"} />
                         <button className="btn-secondary px-2 py-1 text-xs" type="submit">Save</button>
                       </form>
                     ) : (
-                      <span dir="auto">{topicOf(o) ?? ""}</span>
+                      <span dir="auto">{topic(d) ?? ""}</span>
                     )}
                   </td>
                 </tr>

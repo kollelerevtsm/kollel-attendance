@@ -5,8 +5,29 @@ export interface NightInfo {
   date: string; // English date of the evening, "YYYY-MM-DD"
   hebrewDate: string; // Hebrew date of the night (the evening belongs to the next Hebrew day)
   holidays: string[];
+  categories: HolidayCategory[];
   suggestedOff: boolean;
 }
+
+export type HolidayCategory =
+  | "yomtov"
+  | "motzei_yomtov"
+  | "cholhamoed"
+  | "chanukah"
+  | "purim"
+  | "bedikas_chametz"
+  | "tishabav";
+
+/** Kinds of nights the principal can choose to have off, with labels for Settings. */
+export const HOLIDAY_CATEGORIES: { key: HolidayCategory; label: string }[] = [
+  { key: "yomtov", label: "Erev Yom Tov and Yom Tov nights (incl. Rosh Hashana, Yom Kippur)" },
+  { key: "motzei_yomtov", label: "Motzei Yom Tov" },
+  { key: "cholhamoed", label: "Chol Hamoed nights" },
+  { key: "chanukah", label: "Chanukah nights" },
+  { key: "purim", label: "Purim night" },
+  { key: "bedikas_chametz", label: "Bedikas chametz night (night before Erev Pesach)" },
+  { key: "tishabav", label: "Tisha B'Av night" },
+];
 
 function toDate(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
@@ -20,10 +41,9 @@ function isoOf(e: Event): string {
 
 /**
  * Hebrew date and holidays for every evening from `start` to `end` (inclusive).
- * A night is suggested "off" when the evening begins a Yom Tov day
- * (erev Yom Tov, or the first night of a two-day Yom Tov continuing).
+ * A night is suggested "off" when it falls in one of `offCategories` (by default only Yom Tov).
  */
-export function nightsInfo(start: string, end: string): Map<string, NightInfo> {
+export function nightsInfo(start: string, end: string, offCategories: string[] = ["yomtov"]): Map<string, NightInfo> {
   const events = HebrewCalendar.calendar({
     start: toDate(start),
     end: toDate(addDays(end, 1)),
@@ -37,12 +57,22 @@ export function nightsInfo(start: string, end: string): Map<string, NightInfo> {
     const k = isoOf(e);
     byDay.set(k, [...(byDay.get(k) ?? []), e]);
   }
+  const has = (list: Event[], test: (e: Event) => boolean) => list.some(test);
+  const isChag = (e: Event) => Boolean(e.getFlags() & flags.CHAG);
 
   const out = new Map<string, NightInfo>();
   for (let d = start; d <= end; d = addDays(d, 1)) {
     const tonight = byDay.get(d) ?? [];
     const tomorrow = byDay.get(addDays(d, 1)) ?? [];
-    const tomorrowIsChag = tomorrow.some((e) => e.getFlags() & flags.CHAG);
+    const cats: HolidayCategory[] = [];
+    if (has(tomorrow, isChag)) cats.push("yomtov");
+    if (has(tonight, isChag) && !has(tomorrow, isChag)) cats.push("motzei_yomtov");
+    if (has(tomorrow, (e) => Boolean(e.getFlags() & flags.CHOL_HAMOED)) && !has(tomorrow, isChag)) cats.push("cholhamoed");
+    if (has(tonight, (e) => e.getDesc().startsWith("Chanukah:") && e.getDesc().includes("Candle"))) cats.push("chanukah");
+    if (has(tomorrow, (e) => e.getDesc() === "Purim")) cats.push("purim");
+    if (has(tomorrow, (e) => e.getDesc() === "Erev Pesach")) cats.push("bedikas_chametz");
+    if (has(tomorrow, (e) => e.getDesc() === "Tish'a B'Av")) cats.push("tishabav");
+
     const holidays = tonight
       .filter((e) => !(e.getFlags() & (flags.DAF_YOMI | flags.OMER_COUNT | flags.SHABBAT_MEVARCHIM)))
       .map((e) => e.render("en"));
@@ -50,7 +80,8 @@ export function nightsInfo(start: string, end: string): Map<string, NightInfo> {
       date: d,
       hebrewDate: new HDate(toDate(addDays(d, 1))).renderGematriya(true),
       holidays,
-      suggestedOff: tomorrowIsChag,
+      categories: cats,
+      suggestedOff: cats.some((c) => offCategories.includes(c)),
     });
   }
   return out;
