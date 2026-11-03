@@ -3,9 +3,8 @@ import { Fragment } from "react";
 import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
-import { nightsInfo, parshaOfWeek, type NightInfo } from "@/lib/hebrew";
+import { hebrewDayOfNight, hebrewMonthRange, nightsInfo, parshaOfWeek, type NightInfo } from "@/lib/hebrew";
 import { addDays, isSessionNight, weekday } from "@/lib/rules";
-import { PageTitle } from "@/components/Notice";
 import { updateDay } from "./actions";
 
 interface DayRow {
@@ -15,16 +14,8 @@ interface DayRow {
   is_test_date: boolean;
 }
 
-function monthBounds(ym: string) {
-  const [y, m] = ym.split("-").map(Number);
-  const start = `${ym}-01`;
-  const end = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
-  const prev = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
-  const next = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7);
-  return { start, end, prev, next };
-}
-
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS_HE = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש״ק"];
 
 export default async function CalendarPage({ searchParams }: PageProps<"/calendar">) {
   const me = await requireRole(...STAFF);
@@ -33,10 +24,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const today = todayIn(settings.timezone);
   const sp = await searchParams;
   const view = sp.view === "list" ? "list" : "month";
-  const ym = typeof sp.month === "string" && /^\d{4}-\d{2}$/.test(sp.month) ? sp.month : today.slice(0, 7);
-  const { start, end, prev, next } = monthBounds(ym);
+  const month = hebrewMonthRange(typeof sp.hm === "string" ? sp.hm : undefined, today);
+  const { start, end } = month;
   const selected = typeof sp.day === "string" && sp.day >= start && sp.day <= end ? sp.day : null;
-  const href = (q: Record<string, string>) => "/calendar?" + new URLSearchParams({ view, month: ym, ...q }).toString();
+  const href = (q: Record<string, string>) => "/calendar?" + new URLSearchParams({ view, hm: month.param, ...q }).toString();
 
   const supabase = await createClient();
   const [{ data }, { data: tests }] = await Promise.all([
@@ -55,17 +46,25 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
   return (
     <>
-      <PageTitle title={formatDate(start, { month: "long", year: "numeric" })}>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-semibold" dir="rtl">{month.title}</h1>
+          <p className="text-sm text-gray-500">
+            {formatDate(start, { month: "short", day: "numeric" })} – {formatDate(end, { month: "short", day: "numeric", year: "numeric" })} (evenings)
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex overflow-hidden rounded-md border border-gray-300">
-            <Link className={`px-3 py-2 text-sm ${view === "month" ? "bg-blue-700 text-white" : "bg-white"}`} href={`/calendar?view=month&month=${ym}`}>Calendar</Link>
-            <Link className={`px-3 py-2 text-sm ${view === "list" ? "bg-blue-700 text-white" : "bg-white"}`} href={`/calendar?view=list&month=${ym}`}>List</Link>
+            <Link className={`px-3 py-2 text-sm ${view === "month" ? "bg-blue-700 text-white" : "bg-white"}`} href={`/calendar?view=month&hm=${month.param}`}>Calendar</Link>
+            <Link className={`px-3 py-2 text-sm ${view === "list" ? "bg-blue-700 text-white" : "bg-white"}`} href={`/calendar?view=list&hm=${month.param}`}>List</Link>
           </div>
-          <Link className="btn-secondary" href={href({ month: prev })}>←</Link>
-          <Link className="btn-secondary" href={href({ month: today.slice(0, 7) })}>Today</Link>
-          <Link className="btn-secondary" href={href({ month: next })}>→</Link>
+          <div className="flex gap-2" dir="rtl">
+            <Link className="btn-secondary" href={href({ hm: month.prev })}>→ Previous</Link>
+            <Link className="btn-secondary" href={`/calendar?view=${view}`}>Today</Link>
+            <Link className="btn-secondary" href={href({ hm: month.next })}>Next ←</Link>
+          </div>
         </div>
-      </PageTitle>
+      </div>
 
       {/* Test dates */}
       <section className="card mb-4 flex flex-wrap items-center gap-3">
@@ -92,7 +91,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </section>
 
       <p className="mb-4 text-sm text-gray-600">
-        {sessionCount} session nights this month. Hebrew dates are for the night. Nights before Yom Tov are off automatically;
+        {sessionCount} session nights this month. Each night shows the Hebrew date of that night, with the English date of the evening in small print. Nights before Yom Tov are off automatically;
         {canEdit ? " click a night to turn it on or off or set the learning session." : ""}
       </p>
 
@@ -128,18 +127,18 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, dayHre
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
   return (
-    <div className="card overflow-x-auto p-0">
+    <div className="card overflow-x-auto p-0" dir="rtl">
       <div className="grid min-w-[720px] grid-cols-7 border-b bg-gray-50 text-center text-xs font-medium text-gray-600">
-        {WEEKDAYS.map((w) => <div key={w} className="py-2">{w}</div>)}
+        {WEEKDAYS.map((w, i) => <div key={w} className="py-2">{WEEKDAYS_HE[i]} <span className="text-gray-400" dir="ltr">{w}</span></div>)}
       </div>
       {weeks.map((week, wi) => {
         const firstDay = week.find((d) => d) as string;
         return (
           <div key={wi} className="min-w-[720px]">
-            <div className="border-b bg-gray-100 px-3 py-1 text-right text-sm font-semibold text-gray-700" dir="rtl">{parshaOfWeek(firstDay)}</div>
+            <div className="border-b bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">{parshaOfWeek(firstDay)}</div>
             <div className="grid grid-cols-7 border-b last:border-0">
               {week.map((d, i) => {
-                if (!d) return <div key={i} className="min-h-24 border-r bg-gray-50 last:border-r-0" />;
+                if (!d) return <div key={i} className="min-h-24 border-l bg-gray-50 last:border-l-0" />;
                 const o = overrides.get(d);
                 const n = info.get(d)!;
                 const on = isOn(d);
@@ -148,16 +147,18 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, dayHre
                     key={d}
                     href={dayHref(d)}
                     scroll={false}
-                    className={`min-h-24 border-r p-1.5 text-xs last:border-r-0 hover:bg-blue-50 ${on ? "bg-white" : "bg-gray-50 text-gray-400"} ${d === selected ? "ring-2 ring-inset ring-blue-600" : ""}`}
+                    className={`min-h-24 border-l p-1.5 text-xs last:border-l-0 hover:bg-blue-50 ${on ? "bg-white" : "bg-gray-50 text-gray-400"} ${d === selected ? "ring-2 ring-inset ring-blue-600" : ""}`}
                   >
                     <div className="flex items-baseline justify-between">
-                      <span className={`text-sm font-semibold ${d === today ? "rounded-full bg-blue-700 px-1.5 text-white" : ""}`}>{Number(d.slice(8))}</span>
-                      <span dir="rtl">{n.hebrewDate.split(" ").slice(0, 2).join(" ")}</span>
+                      <span className={`text-lg font-semibold ${d === today ? "rounded-full bg-blue-700 px-2 text-white" : ""}`}>{hebrewDayOfNight(d)}</span>
+                      <span className="text-[11px] text-gray-400" dir="ltr">{formatDate(d, { month: "short", day: "numeric" })}</span>
                     </div>
-                    {n.holidays.length > 0 && <div className="mt-0.5 truncate text-purple-700">{n.holidays.join(" · ")}</div>}
-                    {o?.is_test_date && <div className="mt-0.5 rounded bg-amber-100 px-1 text-amber-800">Test</div>}
-                    {on && o?.learning_topic && <div className="mt-0.5 truncate text-gray-700" dir="auto">{o.learning_topic}</div>}
-                    {!on && <div className="mt-0.5">No session</div>}
+                    <div dir="ltr" className="text-left">
+                      {n.holidays.length > 0 && <div className="mt-0.5 truncate text-purple-700">{n.holidays.join(" · ")}</div>}
+                      {o?.is_test_date && <div className="mt-0.5 rounded bg-amber-100 px-1 text-amber-800">Test</div>}
+                      {on && o?.learning_topic && <div className="mt-0.5 truncate text-gray-700" dir="auto">{o.learning_topic}</div>}
+                      {!on && <div className="mt-0.5">No session</div>}
+                    </div>
                   </Link>
                 );
               })}
@@ -219,7 +220,7 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit }: {
         <thead className="border-b bg-gray-50 text-left text-gray-600">
           <tr>
             <th className="px-3 py-2">Night</th>
-            <th className="px-3 py-2">Hebrew date</th>
+            <th className="px-3 py-2">English date</th>
             <th className="px-3 py-2">Session</th>
             <th className="px-3 py-2">Learning session</th>
           </tr>
@@ -238,14 +239,12 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit }: {
                   </tr>
                 )}
                 <tr className={`border-b align-top last:border-0 ${d === today ? "bg-blue-50" : on ? "" : "bg-gray-50 text-gray-500"}`}>
-                  <td className="px-3 py-2 whitespace-nowrap font-medium">
-                    {formatDate(d)}
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <span className="text-base font-semibold" dir="rtl">{n.hebrewDate.split(" ").slice(0, 2).join(" ")}</span>
                     {o?.is_test_date && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">Test</span>}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div dir="rtl" className="text-right md:text-left">{n.hebrewDate}</div>
                     {n.holidays.length > 0 && <div className="text-xs text-purple-700">{n.holidays.join(" · ")}</div>}
                   </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{formatDate(d)}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className={on ? "text-green-700" : "text-gray-500"}>{on ? "On" : "Off"}</span>
                     {overridden && <span className="ml-1 text-xs text-gray-400">(set by principal)</span>}

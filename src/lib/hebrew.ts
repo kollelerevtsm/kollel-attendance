@@ -66,3 +66,51 @@ export function parshaOfWeek(date: string): string {
   const r = getSedra(hd.getFullYear(), false).lookup(hd);
   return r.chag ? Locale.gettext(r.parsha[0], "he-x-NoNikud") : new ParshaEvent(r).render("he-x-NoNikud");
 }
+
+function isoOfDate(g: Date): string {
+  return `${g.getFullYear()}-${String(g.getMonth() + 1).padStart(2, "0")}-${String(g.getDate()).padStart(2, "0")}`;
+}
+
+export interface HebrewMonthRange {
+  param: string; // "5787-8"
+  title: string; // "חשון תשפ״ז"
+  start: string; // English date of the evening of the 1st night of the month
+  end: string; // English date of the evening of the last night
+  prev: string;
+  next: string;
+}
+
+/**
+ * A Hebrew month as a range of evenings. Each evening is labelled by the Hebrew date of
+ * that night, so the month runs from the evening that begins the 1st to the evening that begins the last day.
+ * `param` is "year-month" (Hebcal month numbers: Nisan = 1 … Adar II = 13); empty = the month of `today`'s night.
+ */
+export function hebrewMonthRange(param: string | undefined, today: string): HebrewMonthRange {
+  let year: number, month: number;
+  const m = param ? /^(\d{4})-(\d{1,2})$/.exec(param) : null;
+  if (m && HDate.monthsInYear(Number(m[1])) >= Number(m[2]) && Number(m[2]) >= 1) {
+    year = Number(m[1]);
+    month = Number(m[2]);
+  } else {
+    const night = new HDate(toDate(addDays(today, 1)));
+    year = night.getFullYear();
+    month = night.getMonth();
+  }
+  const first = new HDate(1, month, year);
+  const last = new HDate(HDate.daysInMonth(month, year), month, year);
+  const before = new HDate(first.abs() - 1);
+  const after = new HDate(last.abs() + 1);
+  return {
+    param: `${year}-${month}`,
+    title: first.renderGematriya(true).split(" ").slice(1).join(" "),
+    start: addDays(isoOfDate(first.greg()), -1),
+    end: addDays(isoOfDate(last.greg()), -1),
+    prev: `${before.getFullYear()}-${before.getMonth()}`,
+    next: `${after.getFullYear()}-${after.getMonth()}`,
+  };
+}
+
+/** Hebrew day of the month for an evening, e.g. "כ״ד". */
+export function hebrewDayOfNight(date: string): string {
+  return new HDate(toDate(addDays(date, 1))).renderGematriya(true).split(" ")[0];
+}

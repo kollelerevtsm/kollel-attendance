@@ -120,3 +120,16 @@ describe("parshaOfWeek", () => {
     expect(parshaOfWeek("2026-09-28")).toBe("שמיני עצרת");
   });
 });
+
+import { hebrewDayOfNight, hebrewMonthRange } from "./hebrew";
+describe("hebrewMonthRange", () => {
+  it("runs from the night of the 1st to the night of the last day", () => {
+    const r = hebrewMonthRange(undefined, "2026-11-03");
+    expect(r.title).toBe("חשון תשפ״ז");
+    expect(r.start).toBe("2026-10-11"); // evening that begins 1 Cheshvan
+    expect(r.end).toBe("2026-11-09"); // evening that begins 30 Cheshvan (Nov 10)
+    expect(hebrewDayOfNight("2026-10-11")).toBe("א׳");
+    expect(hebrewMonthRange(r.next, "2026-11-03").title).toBe("כסלו תשפ״ז");
+    expect(hebrewMonthRange(r.prev, "2026-11-03").title).toBe("תשרי תשפ״ז");
+  });
+});
