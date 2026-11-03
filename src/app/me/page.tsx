@@ -4,6 +4,7 @@ import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
 import { addDays, isSessionNight, localParts, minutesToLabel, testRateApplies, type NightStatus } from "@/lib/rules";
 import { StatusChip } from "@/components/StatusChip";
+import { sessionOverride, topicOf } from "@/lib/calendarDay";
 import { signOut } from "../login/actions";
 
 export default async function StudentHome() {
@@ -34,7 +35,7 @@ export default async function StudentHome() {
 
   const upcoming: string[] = [];
   for (let d = today; d <= until; d = addDays(d, 1)) {
-    if (isSessionNight(d, settings.session_weekdays, overrides.get(d)?.is_session, info.get(d)!.suggestedOff)) upcoming.push(d);
+    if (isSessionNight(d, settings.session_weekdays, sessionOverride(overrides.get(d)), info.get(d)!.suggestedOff)) upcoming.push(d);
   }
 
   return (
@@ -71,7 +72,7 @@ export default async function StudentHome() {
                 {formatDate(d)} <span className="text-gray-500" dir="rtl">· {info.get(d)!.hebrewDate}</span>
                 {overrides.get(d)?.is_test_date && <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">Test</span>}
               </span>
-              <span className="text-right text-gray-700" dir="auto">{overrides.get(d)?.learning_topic ?? ""}</span>
+              <span className="text-right text-gray-700" dir="auto">{topicOf(overrides.get(d)) ?? ""}</span>
             </li>
           ))}
           {upcoming.length === 0 && <li className="py-2 text-gray-500">No sessions in the next two weeks.</li>}

@@ -2,14 +2,15 @@ import { createClient } from "./supabase/server";
 import { getSettings, todayIn } from "./data";
 import { nightsInfo } from "./hebrew";
 import { addDays, isSessionNight } from "./rules";
+import { sessionOverride, type CalendarRow } from "./calendarDay";
 import { buildRows, rowKey, weekStartOf, type ManualFix } from "./engine";
 
 /** Session nights between start and end (inclusive), using the calendar and holidays. */
 export async function sessionNights(start: string, end: string): Promise<string[]> {
   const supabase = await createClient();
   const settings = await getSettings();
-  const { data } = await supabase.from("calendar_days").select("day,is_session").gte("day", start).lte("day", end);
-  const overrides = new Map((data ?? []).map((d) => [d.day as string, d.is_session as boolean | null]));
+  const { data } = await supabase.from("calendar_days").select("day,is_session,learning_topic,is_test_date,sync_type").gte("day", start).lte("day", end);
+  const overrides = new Map((data ?? []).map((d) => [d.day as string, sessionOverride(d as CalendarRow)]));
   const info = nightsInfo(start, end);
   const out: string[] = [];
   for (let d = start; d <= end; d = addDays(d, 1)) {

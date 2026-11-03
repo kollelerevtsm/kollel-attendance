@@ -5,14 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { hebrewDayOfNight, hebrewMonthRange, nightsInfo, parshaOfWeek, type NightInfo } from "@/lib/hebrew";
 import { addDays, isSessionNight, weekday } from "@/lib/rules";
-import { updateDay } from "./actions";
+import { syncSchedule, updateDay } from "./actions";
+import { sessionOverride, topicOf, type CalendarRow } from "@/lib/calendarDay";
 
-interface DayRow {
-  day: string;
-  is_session: boolean | null;
-  learning_topic: string | null;
-  is_test_date: boolean;
-}
+type DayRow = CalendarRow;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WEEKDAYS_HE = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש״ק"];
@@ -30,10 +26,12 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const href = (q: Record<string, string>) => "/calendar?" + new URLSearchParams({ view, hm: month.param, ...q }).toString();
 
   const supabase = await createClient();
-  const [{ data }, { data: tests }] = await Promise.all([
+  const [{ data }, { data: tests }, { data: last }] = await Promise.all([
     supabase.from("calendar_days").select("*").gte("day", start).lte("day", end),
     supabase.from("calendar_days").select("day").eq("is_test_date", true).order("day"),
+    supabase.from("calendar_days").select("synced_at").not("synced_at", "is", null).order("synced_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
+  const lastSync = (last?.synced_at as string | undefined) ?? null;
   const overrides = new Map(((data ?? []) as DayRow[]).map((d) => [d.day, d]));
   const info = nightsInfo(start, end);
   const testDates = (tests ?? []).map((t) => t.day as string);
@@ -41,7 +39,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
   const days: string[] = [];
   for (let d = start; d <= end; d = addDays(d, 1)) days.push(d);
-  const isOn = (d: string) => isSessionNight(d, settings.session_weekdays, overrides.get(d)?.is_session, info.get(d)!.suggestedOff);
+  const isOn = (d: string) => isSessionNight(d, settings.session_weekdays, sessionOverride(overrides.get(d)), info.get(d)!.suggestedOff);
   const sessionCount = days.filter(isOn).length;
 
   return (
@@ -65,6 +63,18 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
           </div>
         </div>
       </div>
+
+      {canEdit && (
+        <form action={syncSchedule} className="mb-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
+          <span>
+            Daily learning, test dates and Yom Tov days come from torahscha.app automatically every morning
+            {lastSync ? ` (last update ${new Date(lastSync).toLocaleString("en-US", { timeZone: settings.timezone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })})` : ""}.
+          </span>
+          <button className="btn-secondary px-3 py-1" type="submit">Update now</button>
+          {typeof sp.synced === "string" && <span className="text-green-700">{sp.synced}</span>}
+          {typeof sp.sync_error === "string" && <span className="text-red-700">{sp.sync_error}</span>}
+        </form>
+      )}
 
       {/* Test dates */}
       <section className="card mb-4 flex flex-wrap items-center gap-3">
@@ -156,7 +166,7 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, dayHre
                     <div dir="ltr" className="text-left">
                       {n.holidays.length > 0 && <div className="mt-0.5 truncate text-purple-700">{n.holidays.join(" · ")}</div>}
                       {o?.is_test_date && <div className="mt-0.5 rounded bg-amber-100 px-1 text-amber-800">Test</div>}
-                      {on && o?.learning_topic && <div className="mt-0.5 truncate text-gray-700" dir="auto">{o.learning_topic}</div>}
+                      {topicOf(o) && <div className={`mt-0.5 truncate ${on ? "text-gray-700" : "text-gray-400"}`} dir="auto">{topicOf(o)}</div>}
                       {!on && <div className="mt-0.5">No session</div>}
                     </div>
                   </Link>
@@ -200,11 +210,17 @@ function DayEditor({ day, on, row, info, canEdit, closeHref }: {
         <form action={updateDay} className="flex max-w-xl gap-2">
           <input type="hidden" name="day" value={day} />
           <input type="hidden" name="op" value="topic" />
-          <input className="input" name="learning_topic" defaultValue={row?.learning_topic ?? ""} dir="auto" placeholder="Learning session, e.g. Bava Metzia 21a" />
+          <input className="input" name="learning_topic" defaultValue={row?.learning_topic ?? ""} dir="auto" placeholder={row?.sync_topic ?? "Learning session, e.g. Bava Metzia 21a"} />
           <button className="btn" type="submit">Save</button>
         </form>
       ) : (
-        row?.learning_topic && <p dir="auto">Learning: {row.learning_topic}</p>
+        topicOf(row) && <p dir="auto">Learning: {topicOf(row)}</p>
+      )}
+      {row?.sync_topic && (
+        <p className="text-sm text-gray-500">
+          From torahscha.app: <span dir="rtl">{row.sync_topic}</span>
+          {canEdit && " — leave the box empty to use this, or type something else to replace it."}
+        </p>
       )}
     </section>
   );
@@ -261,11 +277,11 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit }: {
                       <form action={updateDay} className="flex gap-1">
                         <input type="hidden" name="day" value={d} />
                         <input type="hidden" name="op" value="topic" />
-                        <input className="input py-1" name="learning_topic" defaultValue={o?.learning_topic ?? ""} dir="auto" placeholder="e.g. Bava Metzia 21a" />
+                        <input className="input py-1" name="learning_topic" defaultValue={o?.learning_topic ?? ""} dir="auto" placeholder={o?.sync_topic ?? "e.g. Bava Metzia 21a"} />
                         <button className="btn-secondary px-2 py-1 text-xs" type="submit">Save</button>
                       </form>
                     ) : (
-                      <span dir="auto">{o?.learning_topic ?? ""}</span>
+                      <span dir="auto">{topicOf(o) ?? ""}</span>
                     )}
                   </td>
                 </tr>

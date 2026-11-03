@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { getSettings, todayIn } from "@/lib/data";
+import { runScheduleSync } from "@/lib/scheduleSync";
 import { requireRole, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,4 +35,20 @@ export async function updateDay(formData: FormData) {
   await supabase.from("audit_log").insert({ user_id: me.id, action: `calendar.${op}`, details: { day } });
   revalidatePath("/calendar");
   revalidatePath("/tests");
+}
+
+export async function syncSchedule() {
+  const me = await requireRole(...MANAGERS);
+  const supabase = await createClient();
+  const { timezone } = await getSettings();
+  let target: string;
+  try {
+    const n = await runScheduleSync(supabase, todayIn(timezone));
+    await supabase.from("audit_log").insert({ user_id: me.id, action: "calendar.sync", details: { days: n } });
+    target = `/calendar?synced=${encodeURIComponent(`Updated ${n} days from torahscha.app.`)}`;
+  } catch (e) {
+    target = `/calendar?sync_error=${encodeURIComponent(`Couldn't update: ${(e as Error).message}`)}`;
+  }
+  revalidatePath("/calendar");
+  redirect(target);
 }
