@@ -4,6 +4,15 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_PATHS = ["/login", "/auth"];
 
 export async function proxy(request: NextRequest) {
+  // If Supabase sends the sign-in link to the home page (or anywhere else),
+  // pass it on to /auth/confirm so the sign-in isn't lost.
+  const sp = request.nextUrl.searchParams;
+  if ((sp.has("code") || sp.has("token_hash")) && !request.nextUrl.pathname.startsWith("/auth/confirm")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/confirm";
+    return NextResponse.redirect(url);
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
