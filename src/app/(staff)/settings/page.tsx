@@ -1,9 +1,10 @@
 import { requireRole, MANAGERS } from "@/lib/auth";
-import { getSettings } from "@/lib/data";
-import { Notice, PageTitle } from "@/components/Notice";
-import { deleteDayType, saveDayType, saveSettings } from "./actions";
+import { formatDate, getSettings, todayIn } from "@/lib/data";
+import { addDays } from "@/lib/rules";
+import { COLORS, type DayType, type SpecialPeriod } from "@/lib/specialDays";
 import { createClient } from "@/lib/supabase/server";
-import { COLORS, type DayType } from "@/lib/specialDays";
+import { Notice, PageTitle } from "@/components/Notice";
+import { addSpecialPeriod, deleteDayType, deleteSpecialPeriod, saveDayType, saveSettings } from "./actions";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const hhmm = (t: string) => t.slice(0, 5);
@@ -23,7 +24,13 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   const s = await getSettings();
   const sp = await searchParams;
   const supabase = await createClient();
-  const { data: types } = await supabase.from("day_types").select("*").order("name");
+  const today = todayIn(s.timezone);
+  const [{ data: types }, { data: periodRows }] = await Promise.all([
+    supabase.from("day_types").select("*").order("name"),
+    supabase.from("special_periods").select("*").gte("end_date", addDays(today, -60)).order("start_date"),
+  ]);
+  const dayTypes = (types ?? []) as DayType[];
+  const periods = (periodRows ?? []) as SpecialPeriod[];
 
   return (
     <>
@@ -93,8 +100,72 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             Leave a rate empty to use the regular rate.
           </p>
         </div>
-        {((types ?? []) as DayType[]).map((t) => <DayTypeForm key={t.id} t={t} />)}
+        {dayTypes.map((t) => <DayTypeForm key={t.id} t={t} />)}
         <DayTypeForm />
+      </section>
+
+      <section id="special-dates" className="mt-10 space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Special dates</h2>
+          <p className="text-sm text-gray-600">
+            Which dates follow a special day type. On these dates attendance uses that type&apos;s hours and pay.
+            If two ranges overlap, the shorter one wins.
+          </p>
+        </div>
+        <div className="card space-y-4">
+          {periods.length === 0 && <p className="text-sm text-gray-500">No special dates yet.</p>}
+          {periods.length > 0 && (
+            <table className="w-full text-sm">
+              <thead className="border-b text-left text-gray-600">
+                <tr><th className="py-2">Day type</th><th className="py-2">From</th><th className="py-2">To</th><th className="py-2">Note</th><th /></tr>
+              </thead>
+              <tbody>
+                {periods.map((p) => {
+                  const t = dayTypes.find((x) => x.id === p.day_type_id);
+                  return (
+                    <tr key={p.id} className={`border-b last:border-0 ${p.end_date < today ? "text-gray-400" : ""}`}>
+                      <td className="py-2"><span className={`rounded px-2 py-0.5 ${COLORS[t?.color ?? "purple"] ?? COLORS.purple}`}>{t?.name}</span></td>
+                      <td className="py-2">{formatDate(p.start_date, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</td>
+                      <td className="py-2">{p.end_date !== p.start_date ? formatDate(p.end_date, { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : "—"}</td>
+                      <td className="py-2" dir="auto">{p.note}</td>
+                      <td className="py-2 text-right">
+                        <form action={deleteSpecialPeriod}>
+                          <input type="hidden" name="id" value={p.id} />
+                          <button className="text-xs text-red-700 underline" type="submit">Remove</button>
+                        </form>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          {dayTypes.length === 0 ? (
+            <p className="text-sm text-gray-600">Add a day type above first.</p>
+          ) : (
+            <form action={addSpecialPeriod} className="flex flex-wrap items-end gap-3 border-t pt-4">
+              <div>
+                <label className="label" htmlFor="sp-type">Day type</label>
+                <select className="input" id="sp-type" name="day_type_id" required>
+                  {dayTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="sp-from">From</label>
+                <input className="input" id="sp-from" type="date" name="start_date" required />
+              </div>
+              <div>
+                <label className="label" htmlFor="sp-to">To (empty = one day)</label>
+                <input className="input" id="sp-to" type="date" name="end_date" />
+              </div>
+              <div className="min-w-48 flex-1">
+                <label className="label" htmlFor="sp-note">Note</label>
+                <input className="input" id="sp-note" name="note" dir="auto" placeholder="e.g. Pesach" />
+              </div>
+              <button className="btn" type="submit">Add dates</button>
+            </form>
+          )}
+        </div>
       </section>
     </>
   );

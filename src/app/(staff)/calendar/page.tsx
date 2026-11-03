@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { hebrewDayOfNight, hebrewMonthRange, nightsInfo, parshaOfWeek, type NightInfo } from "@/lib/hebrew";
 import { addDays, isSessionNight, minutesToLabel, timeToMinutes, weekday } from "@/lib/rules";
-import { addSpecialPeriod, deleteSpecialPeriod, syncSchedule, updateDay } from "./actions";
+import { syncSchedule, updateDay } from "./actions";
 import { COLORS, periodFor, type DayType, type SpecialPeriod } from "@/lib/specialDays";
 import { sessionOverride, topicOf, type CalendarRow } from "@/lib/calendarDay";
 
@@ -40,7 +40,6 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
     const p = periodFor(d, periods);
     return p ? dayTypes.find((t) => t.id === p.day_type_id) ?? null : null;
   };
-  const backHref = `/calendar?view=${view}&hm=${month.param}`;
   const lastSync = (last?.synced_at as string | undefined) ?? null;
   const overrides = new Map(((data ?? []) as DayRow[]).map((d) => [d.day, d]));
   const info = nightsInfo(start, end);
@@ -110,60 +109,11 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         )}
       </section>
 
-      {/* Special dates */}
-      <section className="card mb-4 space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">Special dates</h2>
-          <Link className="text-sm text-blue-700 underline" href="/settings#special">Edit day types (hours and pay)</Link>
-        </div>
-        {periods.length === 0 && <p className="text-sm text-gray-500">None yet.</p>}
-        <ul className="flex flex-wrap gap-2">
-          {periods.map((p) => {
-            const t = dayTypes.find((x) => x.id === p.day_type_id);
-            return (
-              <li key={p.id} className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${COLORS[t?.color ?? "purple"] ?? COLORS.purple}`}>
-                <strong>{t?.name}</strong>
-                {formatDate(p.start_date, { month: "short", day: "numeric" })}
-                {p.end_date !== p.start_date && ` – ${formatDate(p.end_date, { month: "short", day: "numeric" })}`}
-                {p.note && <span dir="auto">· {p.note}</span>}
-                {canEdit && (
-                  <form action={deleteSpecialPeriod} className="inline">
-                    <input type="hidden" name="id" value={p.id} />
-                    <input type="hidden" name="back" value={backHref} />
-                    <button className="opacity-60 hover:text-red-700 hover:opacity-100" title="Remove" aria-label="Remove">×</button>
-                  </form>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-        {canEdit && (dayTypes.length === 0 ? (
-          <p className="text-sm text-gray-600">First create a day type in <Link className="text-blue-700 underline" href="/settings#special">Settings</Link>.</p>
-        ) : (
-          <form action={addSpecialPeriod} className="flex flex-wrap items-end gap-2">
-            <input type="hidden" name="back" value={backHref} />
-            <div>
-              <label className="label">Day type</label>
-              <select className="input py-1" name="day_type_id" required>
-                {dayTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">From</label>
-              <input className="input py-1" type="date" name="start_date" required />
-            </div>
-            <div>
-              <label className="label">To</label>
-              <input className="input py-1" type="date" name="end_date" />
-            </div>
-            <div className="min-w-40 flex-1">
-              <label className="label">Note (optional)</label>
-              <input className="input py-1" name="note" dir="auto" placeholder="e.g. Pesach" />
-            </div>
-            <button className="btn-secondary px-3 py-1" type="submit">Add dates</button>
-          </form>
-        ))}
-      </section>
+      {canEdit && (
+        <p className="mb-4 text-sm text-gray-600">
+          Special days (Chol Hamoed, Erev Yom Tov…) are set in <Link className="text-blue-700 underline" href="/settings#special">Settings</Link>.
+        </p>
+      )}
 
       <p className="mb-4 text-sm text-gray-600">
         {sessionCount} session nights this month. Each night shows the Hebrew date of that night, with the English date of the evening in small print. Nights before Yom Tov are off automatically;

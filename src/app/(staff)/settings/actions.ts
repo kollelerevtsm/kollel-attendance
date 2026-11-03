@@ -104,3 +104,31 @@ export async function deleteDayType(formData: FormData) {
   revalidatePath("/", "layout");
   redirect(`/settings?message=${encodeURIComponent("Day type deleted, along with its dates.")}#special`);
 }
+
+export async function addSpecialPeriod(formData: FormData) {
+  const me = await requireRole(...MANAGERS);
+  const g = (k: string) => String(formData.get(k) ?? "").trim();
+  const back = "/settings";
+  const row = { day_type_id: g("day_type_id"), start_date: g("start_date"), end_date: g("end_date") || g("start_date"), note: g("note") || null, created_by: me.id };
+  const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+    if (!row.day_type_id || !isDate(row.start_date) || !isDate(row.end_date)) redirect(`${back}?error=${encodeURIComponent("Choose a day type and dates.")}`);
+  if (row.end_date < row.start_date) redirect(`${back}?error=${encodeURIComponent("The end date is before the start date.")}`);
+  const supabase = await createClient();
+  const { error } = await supabase.from("special_periods").insert(row);
+  if (error) redirect(`${back}?error=${encodeURIComponent(error.message)}`);
+  await supabase.from("audit_log").insert({ user_id: me.id, action: "special.add", details: row });
+  revalidatePath("/calendar");
+  revalidatePath("/attendance");
+  redirect(`${back}?message=${encodeURIComponent("Special dates added.")}#special-dates`);
+}
+
+export async function deleteSpecialPeriod(formData: FormData) {
+  const me = await requireRole(...MANAGERS);
+  const id = String(formData.get("id"));
+  const supabase = await createClient();
+  await supabase.from("special_periods").delete().eq("id", id);
+  await supabase.from("audit_log").insert({ user_id: me.id, action: "special.delete", details: { id } });
+  revalidatePath("/calendar");
+  revalidatePath("/attendance");
+  redirect("/settings#special-dates");
+}
