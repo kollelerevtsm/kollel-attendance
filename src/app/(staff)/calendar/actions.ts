@@ -31,4 +31,5 @@ export async function updateDay(formData: FormData) {
   if (error) throw new Error(error.message);
   await supabase.from("audit_log").insert({ user_id: me.id, action: `calendar.${op}`, details: { day } });
   revalidatePath("/calendar");
+  revalidatePath("/tests");
 }

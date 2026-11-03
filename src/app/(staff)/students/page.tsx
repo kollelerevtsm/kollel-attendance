@@ -17,10 +17,13 @@ export default async function StudentsPage({ searchParams }: PageProps<"/student
   return (
     <>
       <PageTitle title={`Students (${students.length})`}>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link className="btn-secondary" href={showInactive ? "/students" : "/students?all=1"}>
             {showInactive ? "Hide inactive" : "Show inactive"}
           </Link>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download */}
+          <a className="btn-secondary" href="/students/export">Export to Excel</a>
+          {MANAGERS.includes(me.role) && <Link className="btn-secondary" href="/students/import">Import from Excel</Link>}
           {MANAGERS.includes(me.role) && <Link className="btn" href="/students/new">Add student</Link>}
         </div>
       </PageTitle>
