@@ -16,6 +16,8 @@ export async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return null;
+  // Everyone must have created a password (after verifying their email, or after "forgot password").
+  if (auth.user.user_metadata?.password_set !== true) redirect("/set-password");
   let { data } = await supabase.from("profiles").select("*").eq("id", auth.user.id).maybeSingle();
   if (!data) {
     // Invited or added as a student after their first sign-in.

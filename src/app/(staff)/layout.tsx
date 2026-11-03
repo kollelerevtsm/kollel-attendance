@@ -31,6 +31,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           </nav>
           <div className="ml-auto flex items-center gap-3 text-sm text-gray-500">
             <span>{profile.full_name ?? profile.email} · {ROLE_LABEL[profile.role]}</span>
+            <Link className="text-gray-700 underline hover:text-blue-700" href="/set-password">Change password</Link>
             <form action={signOut}>
               <button className="text-gray-700 underline hover:text-blue-700" type="submit">Sign out</button>
             </form>

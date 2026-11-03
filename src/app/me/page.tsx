@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
@@ -46,7 +47,10 @@ export default async function StudentHome() {
           <p className="text-sm text-gray-500" dir="rtl">כולל ערב תורתך שעשועי</p>
           <h1 className="text-2xl font-semibold" dir="auto">{student?.first_name} {student?.last_name}</h1>
         </div>
-        <form action={signOut}><button className="btn-secondary" type="submit">Sign out</button></form>
+        <div className="flex items-center gap-3">
+          <Link className="text-sm text-gray-600 underline" href="/set-password">Change password</Link>
+          <form action={signOut}><button className="btn-secondary" type="submit">Sign out</button></form>
+        </div>
       </div>
 
       <div className="card grid grid-cols-2 gap-4">
