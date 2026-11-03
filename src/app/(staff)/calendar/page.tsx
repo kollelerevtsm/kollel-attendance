@@ -4,8 +4,9 @@ import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
 import { hebrewDayOfNight, hebrewMonthRange, nightsInfo, parshaOfWeek, type NightInfo } from "@/lib/hebrew";
-import { addDays, isSessionNight, weekday } from "@/lib/rules";
-import { syncSchedule, updateDay } from "./actions";
+import { addDays, isSessionNight, minutesToLabel, timeToMinutes, weekday } from "@/lib/rules";
+import { addSpecialPeriod, deleteSpecialPeriod, syncSchedule, updateDay } from "./actions";
+import { COLORS, periodFor, type DayType, type SpecialPeriod } from "@/lib/specialDays";
 import { sessionOverride, topicOf, type CalendarRow } from "@/lib/calendarDay";
 
 type DayRow = CalendarRow;
@@ -26,11 +27,20 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const href = (q: Record<string, string>) => "/calendar?" + new URLSearchParams({ view, hm: month.param, ...q }).toString();
 
   const supabase = await createClient();
-  const [{ data }, { data: tests }, { data: last }] = await Promise.all([
+  const [{ data }, { data: tests }, { data: last }, { data: typeRows }, { data: periodRows }] = await Promise.all([
     supabase.from("calendar_days").select("*").gte("day", start).lte("day", end),
     supabase.from("calendar_days").select("day").eq("is_test_date", true).order("day"),
     supabase.from("calendar_days").select("synced_at").not("synced_at", "is", null).order("synced_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("day_types").select("*").order("name"),
+    supabase.from("special_periods").select("*").gte("end_date", addDays(today, -60)).order("start_date"),
   ]);
+  const dayTypes = (typeRows ?? []) as DayType[];
+  const periods = (periodRows ?? []) as SpecialPeriod[];
+  const typeOf = (d: string): DayType | null => {
+    const p = periodFor(d, periods);
+    return p ? dayTypes.find((t) => t.id === p.day_type_id) ?? null : null;
+  };
+  const backHref = `/calendar?view=${view}&hm=${month.param}`;
   const lastSync = (last?.synced_at as string | undefined) ?? null;
   const overrides = new Map(((data ?? []) as DayRow[]).map((d) => [d.day, d]));
   const info = nightsInfo(start, end);
@@ -100,6 +110,61 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         )}
       </section>
 
+      {/* Special dates */}
+      <section className="card mb-4 space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-semibold">Special dates</h2>
+          <Link className="text-sm text-blue-700 underline" href="/settings#special">Edit day types (hours and pay)</Link>
+        </div>
+        {periods.length === 0 && <p className="text-sm text-gray-500">None yet.</p>}
+        <ul className="flex flex-wrap gap-2">
+          {periods.map((p) => {
+            const t = dayTypes.find((x) => x.id === p.day_type_id);
+            return (
+              <li key={p.id} className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${COLORS[t?.color ?? "purple"] ?? COLORS.purple}`}>
+                <strong>{t?.name}</strong>
+                {formatDate(p.start_date, { month: "short", day: "numeric" })}
+                {p.end_date !== p.start_date && ` – ${formatDate(p.end_date, { month: "short", day: "numeric" })}`}
+                {p.note && <span dir="auto">· {p.note}</span>}
+                {canEdit && (
+                  <form action={deleteSpecialPeriod} className="inline">
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="back" value={backHref} />
+                    <button className="opacity-60 hover:text-red-700 hover:opacity-100" title="Remove" aria-label="Remove">×</button>
+                  </form>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {canEdit && (dayTypes.length === 0 ? (
+          <p className="text-sm text-gray-600">First create a day type in <Link className="text-blue-700 underline" href="/settings#special">Settings</Link>.</p>
+        ) : (
+          <form action={addSpecialPeriod} className="flex flex-wrap items-end gap-2">
+            <input type="hidden" name="back" value={backHref} />
+            <div>
+              <label className="label">Day type</label>
+              <select className="input py-1" name="day_type_id" required>
+                {dayTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">From</label>
+              <input className="input py-1" type="date" name="start_date" required />
+            </div>
+            <div>
+              <label className="label">To</label>
+              <input className="input py-1" type="date" name="end_date" />
+            </div>
+            <div className="min-w-40 flex-1">
+              <label className="label">Note (optional)</label>
+              <input className="input py-1" name="note" dir="auto" placeholder="e.g. Pesach" />
+            </div>
+            <button className="btn-secondary px-3 py-1" type="submit">Add dates</button>
+          </form>
+        ))}
+      </section>
+
       <p className="mb-4 text-sm text-gray-600">
         {sessionCount} session nights this month. Each night shows the Hebrew date of that night, with the English date of the evening in small print. Nights before Yom Tov are off automatically;
         {canEdit ? " click a night to turn it on or off or set the learning session." : ""}
@@ -107,9 +172,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
       {view === "month" ? (
         <>
-          <MonthGrid days={days} start={start} today={today} selected={selected} isOn={isOn} overrides={overrides} info={info} dayHref={(d) => href({ day: d })} />
+          <MonthGrid days={days} start={start} today={today} selected={selected} isOn={isOn} overrides={overrides} info={info} typeOf={typeOf} dayHref={(d) => href({ day: d })} />
           {selected && (
             <DayEditor
+              type={typeOf(selected)}
               day={selected}
               on={isOn(selected)}
               row={overrides.get(selected)}
@@ -120,15 +186,16 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
           )}
         </>
       ) : (
-        <ListView days={days} start={start} today={today} isOn={isOn} overrides={overrides} info={info} canEdit={canEdit} />
+        <ListView days={days} start={start} today={today} isOn={isOn} overrides={overrides} info={info} canEdit={canEdit} typeOf={typeOf} />
       )}
     </>
   );
 }
 
-function MonthGrid({ days, start, today, selected, isOn, overrides, info, dayHref }: {
+function MonthGrid({ days, start, today, selected, isOn, overrides, info, typeOf, dayHref }: {
   days: string[]; start: string; today: string; selected: string | null;
-  isOn: (d: string) => boolean; overrides: Map<string, DayRow>; info: Map<string, NightInfo>; dayHref: (d: string) => string;
+  isOn: (d: string) => boolean; overrides: Map<string, DayRow>; info: Map<string, NightInfo>;
+  typeOf: (d: string) => DayType | null; dayHref: (d: string) => string;
 }) {
   const lead = weekday(start);
   const cells: (string | null)[] = [...Array(lead).fill(null), ...days];
@@ -164,6 +231,7 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, dayHre
                       <span className="text-[11px] text-gray-400" dir="ltr">{formatDate(d, { month: "short", day: "numeric" })}</span>
                     </div>
                     <div dir="ltr" className="text-left">
+                      {typeOf(d) && <div className={`mt-0.5 truncate rounded px-1 ${COLORS[typeOf(d)!.color] ?? COLORS.purple}`}>{typeOf(d)!.name}</div>}
                       {n.holidays.length > 0 && <div className="mt-0.5 truncate text-purple-700">{n.holidays.join(" · ")}</div>}
                       {o?.is_test_date && <div className="mt-0.5 rounded bg-amber-100 px-1 text-amber-800">Test</div>}
                       {topicOf(o) && <div className={`mt-0.5 truncate ${on ? "text-gray-700" : "text-gray-400"}`} dir="auto">{topicOf(o)}</div>}
@@ -180,9 +248,10 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, dayHre
   );
 }
 
-function DayEditor({ day, on, row, info, canEdit, closeHref }: {
-  day: string; on: boolean; row?: DayRow; info: NightInfo; canEdit: boolean; closeHref: string;
+function DayEditor({ day, on, row, info, canEdit, closeHref, type }: {
+  day: string; on: boolean; row?: DayRow; info: NightInfo; canEdit: boolean; closeHref: string; type: DayType | null;
 }) {
+  const t = (v: string) => minutesToLabel(timeToMinutes(v));
   const overridden = row?.is_session === true || row?.is_session === false;
   return (
     <section className="card mt-4 space-y-3">
@@ -194,6 +263,12 @@ function DayEditor({ day, on, row, info, canEdit, closeHref }: {
       </div>
       {info.holidays.length > 0 && <p className="text-sm text-purple-700">{info.holidays.join(" · ")}</p>}
       {row?.is_test_date && <p className="text-sm text-amber-800">Test night</p>}
+      {type && (
+        <p className="text-sm">
+          <span className={`rounded px-2 py-0.5 ${COLORS[type.color] ?? COLORS.purple}`}>{type.name}</span>{" "}
+          {t(type.session_start)}–{t(type.session_end)} · clock-in from {t(type.clock_in_opens)}, clock-out by {t(type.clock_out_closes)} · {type.required_minutes} min required
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <span className={`rounded px-2 py-1 text-sm ${on ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
           {on ? "Session on" : "No session"}{overridden ? " (set by principal)" : ""}
@@ -226,9 +301,9 @@ function DayEditor({ day, on, row, info, canEdit, closeHref }: {
   );
 }
 
-function ListView({ days, start, today, isOn, overrides, info, canEdit }: {
+function ListView({ days, start, today, isOn, overrides, info, canEdit, typeOf }: {
   days: string[]; start: string; today: string; isOn: (d: string) => boolean;
-  overrides: Map<string, DayRow>; info: Map<string, NightInfo>; canEdit: boolean;
+  overrides: Map<string, DayRow>; info: Map<string, NightInfo>; canEdit: boolean; typeOf: (d: string) => DayType | null;
 }) {
   return (
     <div className="card overflow-x-auto p-0">
@@ -258,6 +333,7 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit }: {
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className="text-base font-semibold" dir="rtl">{n.hebrewDate.split(" ").slice(0, 2).join(" ")}</span>
                     {o?.is_test_date && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">Test</span>}
+                    {typeOf(d) && <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${COLORS[typeOf(d)!.color] ?? COLORS.purple}`}>{typeOf(d)!.name}</span>}
                     {n.holidays.length > 0 && <div className="text-xs text-purple-700">{n.holidays.join(" · ")}</div>}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">{formatDate(d)}</td>

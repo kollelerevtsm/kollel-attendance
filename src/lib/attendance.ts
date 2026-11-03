@@ -3,6 +3,7 @@ import { getSettings, todayIn } from "./data";
 import { nightsInfo } from "./hebrew";
 import { addDays, isSessionNight } from "./rules";
 import { sessionOverride, type CalendarRow } from "./calendarDay";
+import { rulesFor, type DayType, type SpecialPeriod } from "./specialDays";
 import { buildRows, rowKey, weekStartOf, type ManualFix } from "./engine";
 
 /** Session nights between start and end (inclusive), using the calendar and holidays. */
@@ -40,7 +41,7 @@ export async function recalculate(start: string, end: string): Promise<{ nights:
   const allNights = await sessionNights(start, last);
   const nights = allNights.filter((n) => !approved.has(weekStartOf(n)));
 
-  const [students, scans, tests, takers, existing] = await Promise.all([
+  const [students, scans, tests, takers, existing, types, periods] = await Promise.all([
     supabase.from("students").select("id,pin,active,start_date"),
     supabase
       .from("scans")
@@ -54,8 +55,10 @@ export async function recalculate(start: string, end: string): Promise<{ nights:
       .select("student_id,night,manual_clock_in,manual_clock_out,manual_note,edited_by,edited_at")
       .gte("night", start)
       .lte("night", last),
+    supabase.from("day_types").select("*"),
+    supabase.from("special_periods").select("*").lte("start_date", last).gte("end_date", start),
   ]);
-  for (const r of [students, scans, tests, takers, existing]) {
+  for (const r of [students, scans, tests, takers, existing, types, periods]) {
     if (r.error) throw new Error(r.error.message);
   }
 
@@ -72,6 +75,7 @@ export async function recalculate(start: string, end: string): Promise<{ nights:
     takers: takers.data ?? [],
     manual,
     settings,
+    rulesFor: (night) => rulesFor(night, settings, (types.data ?? []) as DayType[], (periods.data ?? []) as SpecialPeriod[]).rules,
   });
 
   if (rows.length) {

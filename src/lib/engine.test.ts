@@ -71,3 +71,30 @@ describe("periods", () => {
     expect(recentPeriods("2026-11-17", "monthly", 3).map((p) => p.start)).toEqual(["2026-11-01", "2026-10-01", "2026-09-01"]);
   });
 });
+
+import { rulesFor, periodFor } from "./specialDays";
+describe("special days", () => {
+  const types = [{ id: "ch", name: "Chol Hamoed", clock_in_opens: "09:00", clock_out_closes: "13:30", session_start: "09:30", session_end: "12:30", required_minutes: 180, base_rate: "40", test_rate: null, color: "amber" }];
+  const periods = [
+    { id: "p1", day_type_id: "ch", start_date: "2027-04-24", end_date: "2027-04-27", note: null },
+    { id: "p2", day_type_id: "ch", start_date: "2027-04-20", end_date: "2027-04-30", note: null },
+  ];
+  it("picks the most specific range and merges rates", () => {
+    expect(periodFor("2027-04-25", periods)?.id).toBe("p1");
+    expect(periodFor("2027-05-01", periods)).toBeNull();
+    const r = rulesFor("2027-04-25", settings, types, periods).rules;
+    expect([r.clock_in_opens, r.required_minutes, r.base_rate, r.test_rate]).toEqual(["09:00", 180, 40, 20]);
+  });
+  it("pays a daytime Chol Hamoed session by its own rules", () => {
+    const rows = buildRows({
+      nights: ["2027-04-25"], students: [students[0]],
+      scans: [
+        { student_id: "a", user_pin: "1234", scanned_at: "2027-04-25T13:05:00Z" }, // 9:05am EDT
+        { student_id: "a", user_pin: "1234", scanned_at: "2027-04-25T16:20:00Z" }, // 12:20pm
+      ],
+      testDates: [], takers: [], manual: new Map(), settings,
+      rulesFor: (n) => rulesFor(n, settings, types, periods).rules,
+    });
+    expect([rows[0].status, rows[0].minutes, rows[0].amount]).toEqual(["paid", 195, 40]);
+  });
+});

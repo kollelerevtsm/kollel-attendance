@@ -52,6 +52,8 @@ export function buildRows(input: {
   takers: { test_date: string; student_id: string }[];
   manual: Map<string, ManualFix>;
   settings: Settings;
+  /** Rules for a given night (special days); defaults to `settings`. */
+  rulesFor?: (night: string) => Settings;
 }): AttendanceRow[] {
   const { nights, students, scans, testDates, takers, manual, settings } = input;
 
@@ -72,6 +74,7 @@ export function buildRows(input: {
 
   const rows: AttendanceRow[] = [];
   for (const night of nights) {
+    const rules = input.rulesFor ? input.rulesFor(night) : settings;
     for (const s of students) {
       if (!s.active || s.start_date > night) continue;
       const took = tookByStudent.get(s.id) ?? new Set<string>();
@@ -80,7 +83,7 @@ export function buildRows(input: {
       const r = computeNight({
         night,
         scans: scansByStudent.get(s.id) ?? [],
-        settings,
+        settings: rules,
         tookTestTonight: testDateSet.has(night) && took.has(night),
         testRateActive,
         manualIn: fix?.manual_clock_in ? new Date(fix.manual_clock_in) : null,
@@ -95,7 +98,7 @@ export function buildRows(input: {
         status: r.status,
         rate: r.rate,
         amount: r.amount,
-        test_rate_applied: r.rate === settings.test_rate && (testRateActive || r.status === "test"),
+        test_rate_applied: r.rate === rules.test_rate && (testRateActive || r.status === "test"),
         reason: fix?.manual_note ? `${r.reason} (fixed: ${fix.manual_note})` : r.reason,
         manual_clock_in: fix?.manual_clock_in ?? null,
         manual_clock_out: fix?.manual_clock_out ?? null,
