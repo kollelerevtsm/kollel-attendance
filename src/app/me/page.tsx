@@ -41,18 +41,20 @@ export default async function StudentHome() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 space-y-4 px-4 py-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500" dir="rtl">כולל ערב תורתך שעשועי</p>
-          <h1 className="text-2xl font-semibold" dir="auto">{student?.first_name} {student?.last_name}</h1>
+    <div className="flex-1">
+      <header className="bg-leather-900 bg-[radial-gradient(ellipse_at_top,rgba(200,160,75,0.16),transparent_65%)] px-4 pb-14 pt-6">
+        <div className="mx-auto flex max-w-xl items-start justify-between gap-4">
+          <div>
+            <p className="text-lg text-gold-400" dir="rtl">כולל ערב תורתך שעשועי</p>
+            <h1 className="mt-1 text-2xl font-semibold text-white" dir="auto">{student?.first_name} {student?.last_name}</h1>
+          </div>
+          <div className="flex items-center gap-3 pt-1 text-sm">
+            <Link className="text-white/70 underline hover:text-white" href="/set-password">Change password</Link>
+            <form action={signOut}><button className="text-white/70 underline hover:text-white" type="submit">Sign out</button></form>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Link className="text-sm text-gray-600 underline" href="/set-password">Change password</Link>
-          <form action={signOut}><button className="btn-secondary" type="submit">Sign out</button></form>
-        </div>
-      </div>
-
+      </header>
+    <main className="mx-auto -mt-10 w-full max-w-xl space-y-4 px-4 pb-10">
       <div className="card grid grid-cols-2 gap-4">
         <div>
           <p className="text-sm text-gray-500">Your rate</p>
@@ -118,5 +120,6 @@ export default async function StudentHome() {
       </div>
       <p className="text-center text-xs text-gray-500">If something looks wrong, please speak to the principal.</p>
     </main>
+    </div>
   );
 }

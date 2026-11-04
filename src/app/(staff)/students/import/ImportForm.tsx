@@ -6,7 +6,7 @@ import { applyImport, previewImport, type PreviewState } from "./actions";
 
 const BADGE: Record<string, string> = {
   add: "bg-green-100 text-green-800",
-  update: "bg-blue-100 text-blue-800",
+  update: "bg-brand-100 text-brand-800",
   error: "bg-red-100 text-red-800",
 };
 
@@ -36,7 +36,7 @@ export function ImportForm() {
         </div>
         <button className="btn" type="submit" disabled={uploading}>{uploading ? "Reading…" : "Check file"}</button>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download */}
-        <a className="text-sm text-blue-700 underline" href="/students/export?template=1">Download the template</a>
+        <a className="text-sm text-brand-700 underline" href="/students/export?template=1">Download the template</a>
         {preview.error && <p className="w-full text-sm text-red-700">{preview.error}</p>}
         {result.error && <p className="w-full text-sm text-red-700">{result.error}</p>}
       </form>

@@ -23,7 +23,7 @@ export default async function TestsPage({ searchParams }: PageProps<"/tests">) {
       <>
         <PageTitle title="Test sheet" />
         <div className="card text-gray-600">
-          No test dates yet. Mark a test date on the <Link className="text-blue-700 underline" href="/calendar">Calendar</Link> first.
+          No test dates yet. Mark a test date on the <Link className="text-brand-700 underline" href="/calendar">Calendar</Link> first.
         </div>
       </>
     );

@@ -62,7 +62,7 @@ export default async function Dashboard() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Next test</p>
-            <p className="font-medium">{nextTest ? formatDate(nextTest.day) : <Link className="text-blue-700 underline" href="/calendar">Set on calendar</Link>}</p>
+            <p className="font-medium">{nextTest ? formatDate(nextTest.day) : <Link className="text-brand-700 underline" href="/calendar">Set on calendar</Link>}</p>
           </div>
         </div>
       </div>

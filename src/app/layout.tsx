@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/source-sans-3";
+import "@fontsource/frank-ruhl-libre/400.css";
+import "@fontsource/frank-ruhl-libre/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

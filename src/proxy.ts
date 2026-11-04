@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+const PUBLIC_PATHS = ["/login", "/auth", "/loading-preview"];
 
 export async function proxy(request: NextRequest) {
   // If Supabase sends the sign-in link to the home page (or anywhere else),

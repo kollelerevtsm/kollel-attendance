@@ -42,7 +42,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/student
             {students.map((s) => (
               <tr key={s.id} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <Link className="text-blue-700 hover:underline" href={`/students/${s.id}`} dir="auto">
+                  <Link className="text-brand-700 hover:underline" href={`/students/${s.id}`} dir="auto">
                     {s.last_name}, {s.first_name}
                   </Link>
                   {!s.active && <span className="ml-2 text-xs text-gray-400">inactive</span>}

@@ -7,7 +7,7 @@ import { PageTitle } from "@/components/Notice";
 
 const STYLE: Record<PeriodStatus, string> = {
   paid: "bg-green-100 text-green-800",
-  ready: "bg-blue-100 text-blue-800",
+  ready: "bg-brand-100 text-brand-800",
   needs_approval: "bg-yellow-100 text-yellow-800",
   not_finished: "bg-gray-100 text-gray-700",
 };
@@ -41,7 +41,7 @@ export default async function PayrollPage() {
             {rows.map((r) => (
               <tr key={r.start} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="px-4 py-2">
-                  <Link className="text-blue-700 hover:underline" href={`/payroll/${periodParam(r)}`}>
+                  <Link className="text-brand-700 hover:underline" href={`/payroll/${periodParam(r)}`}>
                     {formatDate(r.start, { month: "short", day: "numeric" })} – {formatDate(r.end, { month: "short", day: "numeric", year: "numeric" })}
                   </Link>
                 </td>

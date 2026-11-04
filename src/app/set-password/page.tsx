@@ -1,3 +1,4 @@
+import { AuthShell } from "@/components/AuthShell";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isVerified } from "@/lib/twoStep";
@@ -13,8 +14,7 @@ export default async function SetPasswordPage({ searchParams }: PageProps<"/set-
   const changing = data.user.user_metadata?.password_set === true;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <div className="card w-full max-w-sm">
+    <AuthShell>
         <h1 className="mb-1 text-xl font-semibold">{changing ? "Change your password" : "Create your password"}</h1>
         <p className="mb-5 text-sm text-gray-600">
           For <strong>{data.user.email}</strong>. At least 8 characters, with a letter and a number. You&apos;ll use it to sign in from now on.
@@ -34,7 +34,6 @@ export default async function SetPasswordPage({ searchParams }: PageProps<"/set-
         <form action={signOut} className="mt-4 text-center">
           <button className="text-sm text-gray-500 underline" type="submit">Sign out</button>
         </form>
-      </div>
-    </main>
+      </AuthShell>
   );
 }

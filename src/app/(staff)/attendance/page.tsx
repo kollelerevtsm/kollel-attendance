@@ -89,7 +89,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
                 <th className="px-3 py-2">Student</th>
                 {nights.map((n) => (
                   <th key={n} className="px-3 py-2 whitespace-nowrap">
-                    <Link className="text-blue-700 hover:underline" href={`/attendance/night/${n}`}>{formatDate(n)}</Link>
+                    <Link className="text-brand-700 hover:underline" href={`/attendance/night/${n}`}>{formatDate(n)}</Link>
                   </th>
                 ))}
                 <th className="px-3 py-2 text-right">Total</th>
@@ -108,7 +108,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
                           {r ? (
                             <Link href={`/attendance/night/${n}`}>
                               <StatusChip status={r.status} amount={Number(r.amount)} />
-                              {r.manual_note && <span className="ml-1 text-xs text-blue-700">✎</span>}
+                              {r.manual_note && <span className="ml-1 text-xs text-brand-700">✎</span>}
                             </Link>
                           ) : (
                             <span className="text-gray-300">—</span>

@@ -46,7 +46,7 @@ export default async function PeriodPage({ params, searchParams }: PageProps<"/p
           <span className="text-gray-600 print:hidden">
             {" "}· Weeks not approved yet:{" "}
             {info.unapprovedWeeks.map((w, i) => (
-              <span key={w}>{i > 0 && ", "}<Link className="text-blue-700 underline" href={`/attendance?week=${w}`}>{formatDate(w, { month: "short", day: "numeric" })}</Link></span>
+              <span key={w}>{i > 0 && ", "}<Link className="text-brand-700 underline" href={`/attendance?week=${w}`}>{formatDate(w, { month: "short", day: "numeric" })}</Link></span>
             ))}
           </span>
         )}

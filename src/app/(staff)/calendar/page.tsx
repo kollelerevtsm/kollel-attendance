@@ -66,8 +66,8 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex overflow-hidden rounded-md border border-gray-300">
-            <Link className={`px-3 py-2 text-sm ${view === "month" ? "bg-blue-700 text-white" : "bg-white"}`} href={`/calendar?view=month&hm=${month.param}`}>Calendar</Link>
-            <Link className={`px-3 py-2 text-sm ${view === "list" ? "bg-blue-700 text-white" : "bg-white"}`} href={`/calendar?view=list&hm=${month.param}`}>List</Link>
+            <Link className={`px-3 py-2 text-sm ${view === "month" ? "bg-brand-700 text-white" : "bg-white"}`} href={`/calendar?view=month&hm=${month.param}`}>Calendar</Link>
+            <Link className={`px-3 py-2 text-sm ${view === "list" ? "bg-brand-700 text-white" : "bg-white"}`} href={`/calendar?view=list&hm=${month.param}`}>List</Link>
           </div>
           <div className="flex gap-2" dir="rtl">
             <Link className="btn-secondary" href={href({ hm: month.prev })}>→ Previous</Link>
@@ -96,7 +96,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
           <form action={updateDay} className="inline-flex items-center gap-2 rounded-full border border-dashed border-amber-400 px-3 py-1 text-sm">
             <input type="hidden" name="day" value={suggested} />
             Next test probably {formatDate(suggested, { weekday: "short", month: "short", day: "numeric" })}
-            <button className="font-medium text-blue-700 underline" name="op" value="test_on">Add</button>
+            <button className="font-medium text-brand-700 underline" name="op" value="test_on">Add</button>
           </form>
         )}
         {canEdit && (
@@ -112,14 +112,14 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
       {canEdit && (
         <p className="mb-4 text-sm text-gray-600">
-          Special days (Chol Hamoed, Erev Yom Tov…) are set in <Link className="text-blue-700 underline" href="/settings#special">Settings</Link>.
+          Special days (Chol Hamoed, Erev Yom Tov…) are set in <Link className="text-brand-700 underline" href="/settings#special">Settings</Link>.
         </p>
       )}
 
       <p className="mb-4 text-sm text-gray-600">
         {sessionCount} session nights this month. Each night shows the Hebrew date of that night, with the English date of the evening in small print.
-        Holiday nights are off according to <Link className="text-blue-700 underline" href="/settings#holidays">Settings</Link>
-        {settings.daf_start_date ? "; the daf fills in by itself from the starting point in Settings" : <>; set a <Link className="text-blue-700 underline" href="/settings#daf">daf starting point</Link> to fill in the daf automatically</>}.
+        Holiday nights are off according to <Link className="text-brand-700 underline" href="/settings#holidays">Settings</Link>
+        {settings.daf_start_date ? "; the daf fills in by itself from the starting point in Settings" : <>; set a <Link className="text-brand-700 underline" href="/settings#daf">daf starting point</Link> to fill in the daf automatically</>}.
         {canEdit ? " Click a night to turn it on or off, mark it as a review night, or change its learning." : ""}
       </p>
 
@@ -179,10 +179,10 @@ function MonthGrid({ days, start, today, selected, isOn, overrides, info, typeOf
                     key={d}
                     href={dayHref(d)}
                     scroll={false}
-                    className={`min-h-24 border-l p-1.5 text-xs last:border-l-0 hover:bg-blue-50 ${on ? "bg-white" : "bg-gray-50 text-gray-400"} ${d === selected ? "ring-2 ring-inset ring-blue-600" : ""}`}
+                    className={`min-h-24 border-l p-1.5 text-xs last:border-l-0 hover:bg-brand-50 ${on ? "bg-white" : "bg-gray-50 text-gray-400"} ${d === selected ? "ring-2 ring-inset ring-brand-600" : ""}`}
                   >
                     <div className="flex items-baseline justify-between">
-                      <span className={`text-lg font-semibold ${d === today ? "rounded-full bg-blue-700 px-2 text-white" : ""}`}>{hebrewDayOfNight(d)}</span>
+                      <span className={`text-lg font-semibold ${d === today ? "rounded-full bg-brand-700 px-2 text-white" : ""}`}>{hebrewDayOfNight(d)}</span>
                       <span className="text-[11px] text-gray-400" dir="ltr">{formatDate(d, { month: "short", day: "numeric" })}</span>
                     </div>
                     <div dir="ltr" className="text-left">
@@ -286,7 +286,7 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit, typeOf, 
                     <td colSpan={4} className="px-3 py-1.5 text-right font-semibold text-gray-700" dir="rtl">{parshaOfWeek(d)}</td>
                   </tr>
                 )}
-                <tr className={`border-b align-top last:border-0 ${d === today ? "bg-blue-50" : on ? "" : "bg-gray-50 text-gray-500"}`}>
+                <tr className={`border-b align-top last:border-0 ${d === today ? "bg-brand-50" : on ? "" : "bg-gray-50 text-gray-500"}`}>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <span className="text-base font-semibold" dir="rtl">{n.hebrewDate.split(" ").slice(0, 2).join(" ")}</span>
                     {o?.is_test_date && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">Test</span>}
@@ -300,7 +300,7 @@ function ListView({ days, start, today, isOn, overrides, info, canEdit, typeOf, 
                     {canEdit && (
                       <form action={updateDay} className="mt-1 flex gap-1">
                         <input type="hidden" name="day" value={d} />
-                        <button className="text-xs text-blue-700 underline" name="op" value={on ? "session_off" : "session_on"}>Turn {on ? "off" : "on"}</button>
+                        <button className="text-xs text-brand-700 underline" name="op" value={on ? "session_off" : "session_on"}>Turn {on ? "off" : "on"}</button>
                         {overridden && <button className="text-xs text-gray-500 underline" name="op" value="session_default">Reset</button>}
                         {on && <button className="text-xs text-sky-700 underline" name="op" value={o?.is_review ? "review_off" : "review_on"}>{o?.is_review ? "Undo review" : "Review"}</button>}
                       </form>

@@ -1,3 +1,4 @@
+import { AuthShell } from "@/components/AuthShell";
 import Link from "next/link";
 import { Notice } from "@/components/Notice";
 import { sendEmailLink, signInWithPassword } from "./actions";
@@ -10,10 +11,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const sent = sp.sent === "1";
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <div className="card w-full max-w-sm">
-        <h1 className="text-center text-xl font-semibold" dir="rtl">כולל ערב תורתך שעשועי</h1>
-        <p className="mb-6 text-center text-sm text-gray-500">Attendance &amp; Payroll</p>
+    <AuthShell>
 
         {mode === "signin" ? (
           <>
@@ -30,8 +28,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               <button className="btn w-full" type="submit">Sign in</button>
             </form>
             <div className="mt-5 flex justify-between text-sm">
-              <Link className="text-blue-700 underline" href="/login?mode=first">First time here?</Link>
-              <Link className="text-blue-700 underline" href="/login?mode=forgot">Forgot password?</Link>
+              <Link className="text-brand-700 underline" href="/login?mode=first">First time here?</Link>
+              <Link className="text-brand-700 underline" href="/login?mode=forgot">Forgot password?</Link>
             </div>
           </>
         ) : (
@@ -52,11 +50,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               <button className="btn w-full" type="submit">{sent ? "Send again" : "Email me the link"}</button>
             </form>
             <p className="mt-5 text-center text-sm">
-              <Link className="text-blue-700 underline" href="/login">Back to sign in</Link>
+              <Link className="text-brand-700 underline" href="/login">Back to sign in</Link>
             </p>
           </>
         )}
-      </div>
-    </main>
+      </AuthShell>
   );
 }

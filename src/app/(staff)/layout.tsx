@@ -1,44 +1,72 @@
 import Link from "next/link";
+import { Menu, KeyRound, LogOut } from "lucide-react";
 import { requireRole, STAFF, type Role } from "@/lib/auth";
+import { getSettings, todayIn } from "@/lib/data";
+import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
+import { SideNav } from "@/components/SideNav";
+import { Brand } from "@/components/Brand";
 import { signOut } from "../login/actions";
-
-const NAV: { href: string; label: string; roles: Role[]; soon?: boolean }[] = [
-  { href: "/dashboard", label: "Dashboard", roles: ["admin", "principal", "payroll"] },
-  { href: "/attendance", label: "Attendance", roles: ["admin", "principal", "payroll"] },
-  { href: "/students", label: "Students", roles: ["admin", "principal", "payroll"] },
-  { href: "/calendar", label: "Calendar", roles: ["admin", "principal", "payroll"] },
-  { href: "/tests", label: "Test sheet", roles: ["admin", "principal", "payroll"] },
-  { href: "/payroll", label: "Payroll", roles: ["admin", "principal", "payroll"] },
-  { href: "/settings", label: "Settings", roles: ["admin", "principal"] },
-  { href: "/staff", label: "Staff logins", roles: ["admin"] },
-];
 
 const ROLE_LABEL: Record<Role, string> = { admin: "Admin", principal: "Principal", payroll: "Payroll", student: "Student" };
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const profile = await requireRole(...STAFF);
+  const settings = await getSettings();
+  const today = todayIn(settings.timezone);
+  const tonight = nightsInfo(today, today, settings.off_holidays).get(today)!;
+  const name = profile.full_name ?? profile.email;
+  const initials = name.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
+
+  const sidebar = (
+    <>
+      <Link href="/dashboard" className="block px-4 pb-6 pt-7">
+        <Brand hebrewDate={`ליל ${tonight.hebrewDate}`} />
+      </Link>
+      <div className="mx-6 mb-5 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" aria-hidden />
+      <SideNav role={profile.role} />
+    </>
+  );
+
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b border-gray-200 bg-white print:hidden">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/dashboard" className="font-semibold" dir="rtl">כולל ערב תורתך שעשועי</Link>
-          <nav className="flex flex-wrap gap-4 text-sm">
-            {NAV.filter((n) => n.roles.includes(profile.role)).map((n) => (
-              <Link key={n.href} href={n.href} className="text-gray-700 hover:text-blue-700">
-                {n.label}
+    <div className="flex min-h-screen">
+      {/* Desktop sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col overflow-y-auto bg-leather-900 pb-6 lg:flex print:hidden">
+        {sidebar}
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
+        {/* Top bar */}
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:px-8 print:hidden">
+          <details className="relative lg:hidden">
+            <summary className="flex cursor-pointer list-none items-center rounded-md p-2 hover:bg-gray-100" aria-label="Menu">
+              <Menu size={20} />
+            </summary>
+            <div className="fixed inset-y-0 left-0 z-30 w-64 overflow-y-auto bg-leather-900 pb-6 shadow-xl">{sidebar}</div>
+          </details>
+          <p className="truncate text-sm text-gray-600" dir="rtl">{parshaOfWeek(today)}</p>
+          <details className="relative ml-auto">
+            <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-gray-100">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-leather-800 text-xs font-semibold text-gold-300">{initials}</span>
+              <span className="hidden text-sm sm:block">
+                <span className="font-medium">{name}</span>
+                <span className="text-gray-500"> · {ROLE_LABEL[profile.role]}</span>
+              </span>
+            </summary>
+            <div className="absolute right-0 mt-2 w-52 rounded-lg border border-line bg-white p-1 shadow-lg">
+              <Link href="/set-password" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-50">
+                <KeyRound size={16} aria-hidden /> Change password
               </Link>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm text-gray-500">
-            <span>{profile.full_name ?? profile.email} · {ROLE_LABEL[profile.role]}</span>
-            <Link className="text-gray-700 underline hover:text-blue-700" href="/set-password">Change password</Link>
-            <form action={signOut}>
-              <button className="text-gray-700 underline hover:text-blue-700" type="submit">Sign out</button>
-            </form>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+              <form action={signOut}>
+                <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-gray-50" type="submit">
+                  <LogOut size={16} aria-hidden /> Sign out
+                </button>
+              </form>
+            </div>
+          </details>
+        </header>
+
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8">{children}</main>
+      </div>
     </div>
   );
 }

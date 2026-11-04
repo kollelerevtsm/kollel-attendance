@@ -1,3 +1,4 @@
+import { AuthShell } from "@/components/AuthShell";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isVerified, TRUST_DAYS } from "@/lib/twoStep";
@@ -17,8 +18,7 @@ export default async function VerifyPage({ searchParams }: PageProps<"/verify">)
   const error = typeof sp.error === "string" ? sp.error : sendError ?? undefined;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-6">
-      <div className="card w-full max-w-sm">
+    <AuthShell>
         <h1 className="mb-1 text-xl font-semibold">Check your email</h1>
         <p className="mb-5 text-sm text-gray-600">
           We sent a sign-in code to <strong>{data.user.email}</strong>. Enter it below to finish signing in.
@@ -39,11 +39,10 @@ export default async function VerifyPage({ searchParams }: PageProps<"/verify">)
           <button className="btn w-full" type="submit">Verify</button>
         </form>
         <div className="mt-4 flex justify-between text-sm">
-          <form action={resendCode}><button className="text-blue-700 underline" type="submit">Send a new code</button></form>
+          <form action={resendCode}><button className="text-brand-700 underline" type="submit">Send a new code</button></form>
           <form action={signOut}><button className="text-gray-500 underline" type="submit">Sign out</button></form>
         </div>
         <p className="mt-4 text-xs text-gray-500">Only tick “remember” on your own computer or phone, not a shared one.</p>
-      </div>
-    </main>
+      </AuthShell>
   );
 }
