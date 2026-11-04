@@ -19,7 +19,7 @@ function Field({ name, label, defaultValue, required, type = "text", dir }: {
   return (
     <div>
       <label className="label" htmlFor={name}>{label}{required && " *"}</label>
-      <input className="input" id={name} name={name} type={type} defaultValue={defaultValue ?? ""} required={required} dir={dir} />
+      <input className="input" id={name} name={name} type={type} defaultValue={defaultValue ?? ""} required={required} dir={dir} autoComplete="off" />
     </div>
   );
 }
@@ -30,7 +30,7 @@ export function StudentForm({ student, action, canEdit }: {
   canEdit: boolean;
 }) {
   return (
-    <form action={action} className="card space-y-5">
+    <form action={action} autoComplete="off" className="card space-y-5">
       {student && <input type="hidden" name="id" value={student.id} />}
       <fieldset disabled={!canEdit} className="grid gap-4 md:grid-cols-2">
         <Field name="first_name" label="First name" defaultValue={student?.first_name} required dir="auto" />

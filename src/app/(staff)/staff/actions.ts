@@ -13,6 +13,9 @@ export async function inviteStaff(formData: FormData) {
   if (!email || !["admin", "principal", "payroll"].includes(role)) {
     redirect(`/staff?error=${encodeURIComponent("Enter an email and choose a role.")}`);
   }
+  if (email === me.email.toLowerCase()) {
+    redirect(`/staff?error=${encodeURIComponent("That's your own email. Enter the new staff member's email (your browser may have filled in yours).")}`);
+  }
   const supabase = await createClient();
   const { error } = await supabase.from("staff_invites").upsert({ email, role, full_name });
   if (error) redirect(`/staff?error=${encodeURIComponent(error.message)}`);

@@ -19,14 +19,14 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
       <p className="mb-4 text-sm text-gray-600">
         Staff sign in with a link sent to their email. Students sign in with the email on their student record, so they don&apos;t need to be added here.
       </p>
-      <form action={inviteStaff} className="card mb-6 grid gap-4 md:grid-cols-4 md:items-end">
+      <form action={inviteStaff} autoComplete="off" className="card mb-6 grid gap-4 md:grid-cols-4 md:items-end">
         <div>
           <label className="label" htmlFor="full_name">Name</label>
-          <input className="input" id="full_name" name="full_name" />
+          <input className="input" id="full_name" name="full_name" autoComplete="off" />
         </div>
         <div>
           <label className="label" htmlFor="email">Email</label>
-          <input className="input" id="email" name="email" type="email" required />
+          <input className="input" id="email" name="email" type="email" required autoComplete="off" />
         </div>
         <div>
           <label className="label" htmlFor="role">Role</label>
