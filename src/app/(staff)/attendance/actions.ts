@@ -9,6 +9,8 @@ import { recalculate } from "@/lib/attendance";
 import { isPaidNight } from "@/lib/locks";
 import { addDays, zonedTimeToDate } from "@/lib/rules";
 import { weekStartOf } from "@/lib/engine";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { pullFromCrossChex } from "@/lib/pull";
 
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 const isTime = (s: string) => /^\d{2}:\d{2}$/.test(s);
@@ -148,4 +150,21 @@ export async function deleteManualScan(formData: FormData) {
   await recalculate(night, night);
   revalidatePath("/attendance");
   redirect(`${back}?message=${encodeURIComponent("Scan removed.")}`);
+}
+
+export async function pullScansNow(formData: FormData) {
+  const me = await requireRole(...MANAGERS);
+  const week = String(formData.get("week") ?? "");
+  const back = `/attendance${/^\d{4}-\d{2}-\d{2}$/.test(week) ? `?week=${week}&` : "?"}`;
+  let msg: string;
+  try {
+    const r = await pullFromCrossChex(createAdminClient(), 7);
+    msg = `message=${encodeURIComponent(`Checked the scanner: ${r.fetched} scans in the last 7 days, ${r.saved} new.`)}`;
+    const supabase = await createClient();
+    await supabase.from("audit_log").insert({ user_id: me.id, action: "crosschex.manual_pull", details: r });
+  } catch (e) {
+    msg = `error=${encodeURIComponent(`Couldn't reach CrossChex: ${(e as Error).message}`)}`;
+  }
+  revalidatePath("/attendance");
+  redirect(back + msg);
 }

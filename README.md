@@ -11,7 +11,7 @@ Nightly attendance from the Anviz W1 Pro fingerprint scanner, pay calculation, p
 | 1 | Database, logins and roles, Settings, Students and PINs | Done |
 | 2 | Calendar with Hebrew dates, holidays, nights on/off, learning sessions, test dates | Done |
 | 3 | Attendance rules, fixing punches, scans entered by hand | Done |
-| 3b | CrossChex webhook + nightly backup sync | Waiting for scanner and Developer Mode |
+| 3b | CrossChex webhook + nightly backup sync | Built; needs keys and a real scan to confirm |
 | 4 | Test sheet, weekly approval, payroll list, check numbers, print, Excel export | Done |
 | 5 | Student portal: attendance with reasons, payments | Done |
 
@@ -42,6 +42,20 @@ Nightly attendance from the Anviz W1 Pro fingerprint scanner, pay calculation, p
 | `SUPABASE_SERVICE_ROLE_KEY` | Added by the Supabase–Vercel connection |
 | `SMTP_USER` | The Gmail address that sends sign-in codes |
 | `SMTP_PASS` | That Gmail account's 16-letter app password |
+| `CROSSCHEX_API_KEY` | CrossChex Cloud → Settings → Developer Mode → Cloud API |
+| `CROSSCHEX_API_SECRET` | Same page |
+| `CROSSCHEX_WEBHOOK_KEY` | Any long random text; also goes at the end of the webhook Server URL |
+| `CRON_SECRET` | Any long random text (lets Vercel run the nightly backup pull) |
+
+### 4. CrossChex webhook
+
+CrossChex Cloud → Settings → Developer Mode → Webhooks:
+- Server URL: `https://<your site>/api/webhooks/crosschex?key=<CROSSCHEX_WEBHOOK_KEY>`
+- Password: anything (the key in the URL is what's checked)
+- Turn Webhooks on and Save.
+
+Every night at about 10:30pm a backup pull fetches the last 3 days from the CrossChex API, in case a webhook was missed.
+On test nights, a student who verifies with their **PIN** instead of a fingerprint is recorded as a test taker automatically.
 
 3. Click **Deploy**. Every change pushed to GitHub deploys automatically after that.
 

@@ -8,7 +8,7 @@ import { weekStartOf } from "@/lib/engine";
 import { addDays, type NightStatus } from "@/lib/rules";
 import { Notice, PageTitle } from "@/components/Notice";
 import { NEEDS_ATTENTION, StatusChip } from "@/components/StatusChip";
-import { approveWeek, unapproveWeek } from "./actions";
+import { approveWeek, pullScansNow, unapproveWeek } from "./actions";
 
 interface Row { student_id: string; night: string; status: NightStatus; amount: number; reason: string | null; manual_note: string | null }
 
@@ -48,7 +48,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
         </div>
       </PageTitle>
       <p className="-mt-4 mb-4 text-lg text-gray-700" dir="rtl">{parshaOfWeek(week)}</p>
-      <Notice error={typeof sp.error === "string" ? sp.error : undefined} />
+      <Notice error={typeof sp.error === "string" ? sp.error : undefined} message={typeof sp.message === "string" ? sp.message : undefined} />
 
       <div className="card mb-4 flex flex-wrap items-center gap-4">
         {approved ? (
@@ -59,6 +59,12 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
           <span className="rounded bg-yellow-100 px-2 py-1 text-sm text-yellow-800">Needs approval</span>
         )}
         <span className="text-sm text-gray-600">{flags} to fix · ${total.toFixed(2)} this week</span>
+        {canEdit && (
+          <form action={pullScansNow}>
+            <input type="hidden" name="week" value={week} />
+            <button className="btn-secondary" type="submit" title="Scans arrive automatically; use this if some seem missing">Check scanner for missing scans</button>
+          </form>
+        )}
         {canEdit && (
           <form action={approved ? unapproveWeek : approveWeek} className="ml-auto">
             <input type="hidden" name="week" value={week} />

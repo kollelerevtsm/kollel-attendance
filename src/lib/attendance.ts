@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
 import { getSettings, todayIn } from "./data";
 import { nightsInfo } from "./hebrew";
@@ -7,9 +8,9 @@ import { rulesFor, type DayType, type SpecialPeriod } from "./specialDays";
 import { buildRows, rowKey, weekStartOf, type ManualFix } from "./engine";
 
 /** Session nights between start and end (inclusive), using the calendar and holidays. */
-export async function sessionNights(start: string, end: string): Promise<string[]> {
-  const supabase = await createClient();
-  const settings = await getSettings();
+export async function sessionNights(start: string, end: string, client?: SupabaseClient): Promise<string[]> {
+  const supabase = client ?? (await createClient());
+  const settings = await getSettings(supabase);
   const { data } = await supabase.from("calendar_days").select("day,is_session,learning_topic,is_test_date,sync_type").gte("day", start).lte("day", end);
   const overrides = new Map((data ?? []).map((d) => [d.day as string, sessionOverride(d as CalendarRow)]));
   const info = nightsInfo(start, end, settings.off_holidays);
@@ -20,8 +21,8 @@ export async function sessionNights(start: string, end: string): Promise<string[
   return out;
 }
 
-export async function approvedWeeks(): Promise<Set<string>> {
-  const supabase = await createClient();
+export async function approvedWeeks(client?: SupabaseClient): Promise<Set<string>> {
+  const supabase = client ?? (await createClient());
   const { data } = await supabase.from("week_approvals").select("week_start");
   return new Set((data ?? []).map((w) => w.week_start as string));
 }
@@ -30,15 +31,15 @@ export async function approvedWeeks(): Promise<Set<string>> {
  * Recalculate attendance rows for [start, end] from scans, test sheets and manual fixes.
  * Nights in approved weeks are never changed. Future nights are skipped.
  */
-export async function recalculate(start: string, end: string): Promise<{ nights: number; rows: number }> {
-  const supabase = await createClient();
-  const settings = await getSettings();
+export async function recalculate(start: string, end: string, client?: SupabaseClient): Promise<{ nights: number; rows: number }> {
+  const supabase = client ?? (await createClient());
+  const settings = await getSettings(supabase);
   const today = todayIn(settings.timezone);
   const last = end < today ? end : today;
   if (start > last) return { nights: 0, rows: 0 };
 
-  const approved = await approvedWeeks();
-  const allNights = await sessionNights(start, last);
+  const approved = await approvedWeeks(supabase);
+  const allNights = await sessionNights(start, last, supabase);
   const nights = allNights.filter((n) => !approved.has(weekStartOf(n)));
 
   const [students, scans, tests, takers, existing, types, periods] = await Promise.all([

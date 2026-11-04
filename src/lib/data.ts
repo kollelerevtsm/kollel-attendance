@@ -1,8 +1,9 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "./supabase/server";
 import type { Settings } from "./rules";
 
-export async function getSettings(): Promise<Settings> {
-  const supabase = await createClient();
+export async function getSettings(client?: SupabaseClient): Promise<Settings> {
+  const supabase = client ?? (await createClient());
   const { data, error } = await supabase.from("settings").select("*").eq("id", 1).single();
   if (error || !data) throw new Error("Could not load settings: " + error?.message);
   return {
