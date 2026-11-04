@@ -15,6 +15,7 @@ export interface Settings {
   session_weekdays: number[]; // 0 = Sunday
   timezone: string;
   off_holidays?: string[];
+  test_claim_days?: number;
   daf_start_masechta?: string | null;
   daf_start_daf?: number | null;
   daf_start_date?: string | null;
@@ -242,3 +243,13 @@ export const STATUS_LABEL: Record<NightStatus, string> = {
   missing_out: "No clock-out",
   test: "Test",
 };
+
+/**
+ * Which test does a claim on `night` count for? The latest test on or before that night,
+ * if the night is within `claimDays` after it. Null if no test is open for claims.
+ */
+export function testOpenOn(night: string, testDates: string[], claimDays: number): string | null {
+  let latest: string | null = null;
+  for (const t of testDates) if (t <= night && (latest === null || t > latest)) latest = t;
+  return latest !== null && night <= addDays(latest, Math.max(0, claimDays)) ? latest : null;
+}

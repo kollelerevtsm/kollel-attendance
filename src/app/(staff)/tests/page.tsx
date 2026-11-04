@@ -35,6 +35,9 @@ export default async function TestsPage({ searchParams }: PageProps<"/tests">) {
   ]);
   const took = new Map((takers ?? []).map((t) => [t.student_id as string, t.source as string]));
   const nextTest = [...testDates].reverse().find((d) => d > selected);
+  const closesOn = addDay(selected, settings.test_claim_days ?? 0);
+  const closed = today > closesOn;
+  const locked = closed && me.role !== "admin";
 
   return (
     <>
@@ -56,9 +59,16 @@ export default async function TestsPage({ searchParams }: PageProps<"/tests">) {
         from {formatDate(selected)} {nextTest ? `until ${formatDate(addDay(nextTest, -1))}` : "until the next test date is set"}.
         Everyone else gets ${settings.base_rate}.
       </p>
+      <p className={`mb-4 text-sm ${closed ? "text-gray-600" : "text-green-800"}`}>
+        {closed
+          ? `Closed for claims since ${formatDate(addDay(closesOn, 1))}.${me.role === "admin" ? " As admin you can still change it." : ""}`
+          : (settings.test_claim_days ?? 0) > 0
+            ? `Open for claims until ${formatDate(closesOn)}. Students can also claim it by entering their PIN on the scanner until then.`
+            : "Claims are accepted only on the test night."}
+      </p>
       <form action={saveTestSheet} className="card space-y-4">
         <input type="hidden" name="date" value={selected} />
-        <fieldset disabled={!canEdit} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <fieldset disabled={!canEdit || locked} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {(students ?? []).map((s) => (
             <label key={s.id} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
               <input type="checkbox" name="student" value={s.id} defaultChecked={took.has(s.id)} />
@@ -68,7 +78,7 @@ export default async function TestsPage({ searchParams }: PageProps<"/tests">) {
           ))}
         </fieldset>
         <p className="text-sm text-gray-600">{took.size} of {(students ?? []).length} took this test.</p>
-        {canEdit && <button className="btn" type="submit">Save test sheet</button>}
+        {canEdit && !locked && <button className="btn" type="submit">Save test sheet</button>}
       </form>
     </>
   );

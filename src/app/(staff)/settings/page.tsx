@@ -88,6 +88,14 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
               </select>
             </div>
           </div>
+          <div className="max-w-md">
+            <label className="label" htmlFor="test_claim_days">Days after a test that it can still be claimed</label>
+            <input className="input" type="number" min={0} max={60} id="test_claim_days" name="test_claim_days" defaultValue={s.test_claim_days ?? 0} />
+            <p className="mt-1 text-xs text-gray-500">
+              0 = only on the test night. For example 7: a student who takes the test up to a week late (entering their PIN on the scanner,
+              or ticked on the test sheet) still gets the test rate. After that the test sheet is locked (the admin can still change it).
+            </p>
+          </div>
           <p className="text-xs text-gray-500">Rate changes apply going forward. Nights already approved keep their rate.</p>
         </section>
 

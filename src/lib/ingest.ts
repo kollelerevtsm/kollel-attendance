@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ScanRecord } from "./crosschex";
 import { getSettings } from "./data";
 import { recalculate } from "./attendance";
-import { localParts } from "./rules";
+import { addDays, localParts, testOpenOn } from "./rules";
 
 /**
  * Save scans (skipping ones already saved), record test takers who entered their PIN on a test night,
@@ -30,17 +30,22 @@ export async function ingestScans(scans: ScanRecord[], supabase: SupabaseClient,
     .select("external_id");
   if (error) throw new Error(error.message);
 
-  // Test night: a student who verified with their PIN took the test.
+  // A student who verifies with their PIN on a test night — or within the claim window after it — took the test.
   const nights = scans.map((s) => localParts(new Date(s.scanned_at), settings.timezone).date);
-  const { data: tests } = await supabase.from("calendar_days").select("day").eq("is_test_date", true).in("day", [...new Set(nights)]);
-  const testDays = new Set((tests ?? []).map((t) => t.day as string));
+  const sortedNights = [...new Set(nights)].sort();
+  const claimDays = settings.test_claim_days ?? 0;
+  const { data: tests } = await supabase
+    .from("calendar_days").select("day").eq("is_test_date", true)
+    .gte("day", addDays(sortedNights[0], -claimDays)).lte("day", sortedNights[sortedNights.length - 1]);
+  const testDates = (tests ?? []).map((t) => t.day as string);
   const takers = scans
-    .map((s, i) => ({ s, night: nights[i] }))
-    .filter(({ s, night }) => s.verify_method === "pin" && testDays.has(night) && byPin.has(s.user_pin))
-    .map(({ s, night }) => ({ test_date: night, student_id: byPin.get(s.user_pin)!, source: "scanner" }));
+    .map((s, i) => ({ s, test: testOpenOn(nights[i], testDates, claimDays) }))
+    .filter(({ s, test }) => s.verify_method === "pin" && test && byPin.has(s.user_pin))
+    .map(({ s, test }) => ({ test_date: test!, student_id: byPin.get(s.user_pin)!, source: "scanner" }));
   if (takers.length) await supabase.from("test_takers").upsert(takers, { onConflict: "test_date,student_id", ignoreDuplicates: true });
 
-  const sorted = [...new Set(nights)].sort();
-  await recalculate(sorted[0], sorted[sorted.length - 1], supabase);
+  // A late claim changes the rate from the test night on, so recalculate from the earliest test claimed.
+  const from = [sortedNights[0], ...takers.map((t) => t.test_date)].sort()[0];
+  await recalculate(from, sortedNights[sortedNights.length - 1], supabase);
   return { saved: inserted?.length ?? 0, testTakers: takers.length };
 }

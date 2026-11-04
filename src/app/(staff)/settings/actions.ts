@@ -33,6 +33,8 @@ export async function saveSettings(formData: FormData) {
   if (!["weekly", "biweekly", "monthly"].includes(payPeriod)) fail("Choose a pay period.");
 
   const offHolidays = formData.getAll("off_holidays").map(String);
+  const claimDays = Number(g("test_claim_days") || 0);
+  if (!Number.isInteger(claimDays) || claimDays < 0 || claimDays > 60) fail("Days to claim a test must be a whole number from 0 to 60.");
   const dafMasechta = g("daf_start_masechta") || null;
   const dafNum = g("daf_start_daf") ? Number(g("daf_start_daf")) : null;
   const dafDate = g("daf_start_date") || null;
@@ -42,6 +44,7 @@ export async function saveSettings(formData: FormData) {
   const supabase = await createClient();
   const update = {
     off_holidays: offHolidays,
+    test_claim_days: claimDays,
     daf_start_masechta: dafMasechta,
     daf_start_daf: dafMasechta ? dafNum : null,
     daf_start_date: dafMasechta ? dafDate : null,

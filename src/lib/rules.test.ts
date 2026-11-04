@@ -147,3 +147,15 @@ describe("holiday categories", () => {
     expect(nightsInfo("2027-04-29", "2027-04-29").get("2027-04-29")!.categories).toContain("motzei_yomtov");
   });
 });
+
+import { testOpenOn } from "./rules";
+describe("test claim window", () => {
+  const tests = ["2026-11-08", "2026-12-06"];
+  it("counts claims within the window for the latest test", () => {
+    expect(testOpenOn("2026-11-08", tests, 0)).toBe("2026-11-08");
+    expect(testOpenOn("2026-11-09", tests, 0)).toBeNull();
+    expect(testOpenOn("2026-11-15", tests, 7)).toBe("2026-11-08");
+    expect(testOpenOn("2026-11-16", tests, 7)).toBeNull();
+    expect(testOpenOn("2026-11-07", tests, 7)).toBeNull();
+  });
+});

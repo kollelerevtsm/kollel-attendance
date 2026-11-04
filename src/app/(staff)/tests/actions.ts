@@ -6,12 +6,18 @@ import { requireRole, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { recalculate } from "@/lib/attendance";
 import { getSettings, todayIn } from "@/lib/data";
+import { addDays } from "@/lib/rules";
 
 export async function saveTestSheet(formData: FormData) {
   const me = await requireRole(...MANAGERS);
   const date = String(formData.get("date"));
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Bad date");
   const checked = new Set(formData.getAll("student").map(String));
+  const s = await getSettings();
+  const closesOn = addDays(date, s.test_claim_days ?? 0);
+  if (me.role !== "admin" && todayIn(s.timezone) > closesOn) {
+    redirect(`/tests?date=${date}&error=${encodeURIComponent("This test is closed for claims. Only the admin can change it now.")}`);
+  }
 
   const supabase = await createClient();
   const { data: current } = await supabase.from("test_takers").select("student_id").eq("test_date", date);
