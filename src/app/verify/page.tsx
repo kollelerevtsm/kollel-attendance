@@ -21,7 +21,7 @@ export default async function VerifyPage({ searchParams }: PageProps<"/verify">)
       <div className="card w-full max-w-sm">
         <h1 className="mb-1 text-xl font-semibold">Check your email</h1>
         <p className="mb-5 text-sm text-gray-600">
-          We sent a 6-digit code to <strong>{data.user.email}</strong>. Enter it below to finish signing in.
+          We sent a sign-in code to <strong>{data.user.email}</strong>. Enter it below to finish signing in.
         </p>
         <Notice error={error} message={sp.resent === "1" ? "A new code is on its way." : undefined} />
         <form action={verifyCode} className="space-y-4">
@@ -29,7 +29,7 @@ export default async function VerifyPage({ searchParams }: PageProps<"/verify">)
             <label className="label" htmlFor="code">Code</label>
             <input
               className="input text-center font-mono text-2xl tracking-[0.4em]"
-              id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" maxLength={7} required autoFocus
+              id="code" name="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,11}" maxLength={11} required autoFocus
             />
           </div>
           <label className="flex items-center gap-2 text-sm">

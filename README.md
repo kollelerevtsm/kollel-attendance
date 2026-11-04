@@ -40,12 +40,22 @@ Nightly attendance from the Anviz W1 Pro fingerprint scanner, pay calculation, p
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API Keys → the **anon / publishable** key (never the service_role / secret key) |
 | `NEXT_PUBLIC_SITE_URL` | Your Vercel address, for example `https://kollel-attendance.vercel.app` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Added by the Supabase–Vercel connection |
-| `SMTP_USER` | The Gmail address that sends sign-in codes |
-| `SMTP_PASS` | That Gmail account's 16-letter app password |
 | `CROSSCHEX_API_KEY` | CrossChex Cloud → Settings → Developer Mode → Cloud API |
 | `CROSSCHEX_API_SECRET` | Same page |
 | `CROSSCHEX_WEBHOOK_KEY` | Any long random text; also goes at the end of the webhook Server URL |
 | `CRON_SECRET` | Any long random text (lets Vercel run the nightly backup pull) |
+
+### Supabase email templates
+
+Authentication → Emails. In **Magic Link** (also used for the two-step code) and **Confirm signup**, the body should be:
+
+```html
+<h2>Kollel Erev</h2>
+<p>Your sign-in code is:</p>
+<p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
+<p>Or click: <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Sign in</a></p>
+<p>If you didn't try to sign in, you can ignore this email.</p>
+```
 
 ### 4. CrossChex webhook
 
