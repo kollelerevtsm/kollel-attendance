@@ -47,13 +47,16 @@ Nightly attendance from the Anviz W1 Pro fingerprint scanner, pay calculation, p
 
 ### Supabase email templates
 
+Use `{{ .RedirectTo }}` (not `{{ .SiteURL }}`) in links: the Supabase–Vercel connection resets the Site URL to the protected
+`...-kollel-clucking.vercel.app` address on every deploy, while the app always sends the correct address as RedirectTo.
+
 Authentication → Emails. In **Magic Link** (also used for the two-step code) and **Confirm signup**, the body should be:
 
 ```html
 <h2>Kollel Erev</h2>
 <p>Your sign-in code is:</p>
 <p style="font-size:28px;font-weight:bold;letter-spacing:4px">{{ .Token }}</p>
-<p>Or click: <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email">Sign in</a></p>
+<p>Or click: <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email">Sign in</a></p>
 <p>If you didn't try to sign in, you can ignore this email.</p>
 ```
 

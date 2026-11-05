@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { confirmUrl } from "@/lib/siteUrl";
 import { clearSessionVerification, isVerified } from "@/lib/twoStep";
 
 const back = (mode: string, params: Record<string, string>) =>
@@ -47,12 +47,10 @@ export async function sendEmailLink(formData: FormData) {
     }
   }
 
-  const h = await headers();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: `${origin}/auth/confirm` },
+    options: { emailRedirectTo: await confirmUrl() },
   });
   if (error) back(mode, { error: /rate|seconds/i.test(error.message) ? "Please wait a minute before asking for another email." : error.message });
   back(mode, { sent: "1", email });

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MAX_ATTEMPTS, markVerified } from "@/lib/twoStep";
+import { confirmUrl } from "@/lib/siteUrl";
 
 // The code is sent and checked by Supabase (its "Magic Link" email, which includes {{ .Token }}),
 // using the Gmail account already connected to Supabase. No extra email setup is needed.
@@ -24,7 +25,7 @@ export async function sendCodeTo(userId: string, email: string, force: boolean):
   if (!force && age < 10 * 60_000) return null;
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: await confirmUrl() } });
   if (error) {
     return /rate|seconds/i.test(error.message) ? "Please wait a minute before asking for another code." : `Couldn't send the code: ${error.message}`;
   }
