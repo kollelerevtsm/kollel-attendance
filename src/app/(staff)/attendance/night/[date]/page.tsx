@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { displayName } from "@/lib/names";
 import { notFound } from "next/navigation";
 import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -25,7 +26,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
       .gte("scanned_at", `${date}T00:00:00Z`).lte("scanned_at", `${addDays(date, 2)}T00:00:00Z`).order("scanned_at"),
   ]);
 
-  const nameOf = new Map((students ?? []).map((s) => [s.id, `${s.last_name}, ${s.first_name}`]));
+  const nameOf = new Map((students ?? []).map((s) => [s.id, displayName(s.first_name, s.last_name)]));
   const idByPin = new Map((students ?? []).map((s) => [s.pin, s.id]));
   const time = (iso: string | null) => (iso ? minutesToLabel(localParts(new Date(iso), timezone).minutes) : "—");
   const hhmm = (iso: string | null) => {

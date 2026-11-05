@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { displayName } from "@/lib/names";
 import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
@@ -72,7 +73,7 @@ export default async function TestsPage({ searchParams }: PageProps<"/tests">) {
           {(students ?? []).map((s) => (
             <label key={s.id} className="flex items-center gap-2 rounded border border-gray-200 px-3 py-2 text-sm">
               <input type="checkbox" name="student" value={s.id} defaultChecked={took.has(s.id)} />
-              <span dir="auto">{s.last_name}, {s.first_name}</span>
+              <span dir="auto">{displayName(s.first_name, s.last_name)}</span>
               {took.get(s.id) === "scanner" && <span className="ml-auto text-xs text-gray-400">from scanner</span>}
             </label>
           ))}

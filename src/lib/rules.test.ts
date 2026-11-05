@@ -159,3 +159,11 @@ describe("test claim window", () => {
     expect(testOpenOn("2026-11-07", tests, 7)).toBeNull();
   });
 });
+
+import { displayName } from "./names";
+describe("displayName", () => {
+  it("Hebrew names: first name first (on the right); English: Last, First", () => {
+    expect(displayName("וואלווי", "ווייסבערג")).toBe("וואלווי ווייסבערג");
+    expect(displayName("Moshe", "Cohen")).toBe("Cohen, Moshe");
+  });
+});

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { displayName } from "@/lib/names";
 import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings, todayIn } from "@/lib/data";
@@ -100,7 +101,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
                 const sum = nights.reduce((acc, n) => acc + Number(byKey.get(`${s.id}|${n}`)?.amount ?? 0), 0);
                 return (
                   <tr key={s.id} className="border-b last:border-0">
-                    <td className="px-3 py-2 whitespace-nowrap" dir="auto">{s.last_name}, {s.first_name}</td>
+                    <td className="px-3 py-2 whitespace-nowrap" dir="auto">{displayName(s.first_name, s.last_name)}</td>
                     {nights.map((n) => {
                       const r = byKey.get(`${s.id}|${n}`);
                       return (

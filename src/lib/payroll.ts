@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/server";
+import { displayName } from "@/lib/names";
 import { getSettings, todayIn } from "./data";
 import { approvedWeeks, sessionNights } from "./attendance";
 import { weekStartOf } from "./engine";
@@ -53,7 +54,7 @@ export async function periodInfo(start: string, end: string) {
 export async function periodTotals(start: string, end: string, paidRowId?: string): Promise<StudentTotal[]> {
   const supabase = await createClient();
   const { data: students } = await supabase.from("students").select("id,first_name,last_name");
-  const name = new Map((students ?? []).map((s) => [s.id as string, `${s.last_name}, ${s.first_name}`]));
+  const name = new Map((students ?? []).map((s) => [s.id as string, displayName(s.first_name, s.last_name)]));
 
   if (paidRowId) {
     const { data } = await supabase.from("payments").select("*").eq("pay_period_id", paidRowId);
