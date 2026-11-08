@@ -22,7 +22,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
   const [{ data: rows }, { data: students }, { data: scans }] = await Promise.all([
     supabase.from("attendance_nights").select("*").eq("night", date),
     supabase.from("students").select("id,first_name,last_name,pin"),
-    supabase.from("scans").select("id,user_pin,student_id,scanned_at,source,verify_method")
+    supabase.from("scans").select("id,user_pin,student_id,scanned_at,source,verify_method,raw")
       .gte("scanned_at", `${date}T00:00:00Z`).lte("scanned_at", `${addDays(date, 2)}T00:00:00Z`).order("scanned_at"),
   ]);
 
@@ -111,7 +111,15 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
                   <td className="px-3 py-2">{time(s.scanned_at)}</td>
                   <td className="px-3 py-2 font-mono">{s.user_pin}</td>
                   <td className="px-3 py-2" dir="auto">{sid ? nameOf.get(sid) : <span className="text-red-700">Unknown PIN</span>}</td>
-                  <td className="px-3 py-2">{s.verify_method ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    {s.verify_method ?? "—"}
+                    {me.role === "admin" && s.raw ? (
+                      <details className="mt-1 text-xs text-gray-500">
+                        <summary className="cursor-pointer">details</summary>
+                        <pre className="max-w-md overflow-x-auto whitespace-pre-wrap">{JSON.stringify(s.raw, null, 1)}</pre>
+                      </details>
+                    ) : null}
+                  </td>
                   <td className="px-3 py-2">{s.source === "manual" ? "Entered by hand" : "Scanner"}</td>
                   <td className="px-3 py-2 text-right">
                     {canEdit && s.source === "manual" && (
