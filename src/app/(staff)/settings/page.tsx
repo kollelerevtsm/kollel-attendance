@@ -92,10 +92,17 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             <label className="label" htmlFor="test_claim_days">Days after a test that it can still be claimed</label>
             <input className="input" type="number" min={0} max={60} id="test_claim_days" name="test_claim_days" defaultValue={s.test_claim_days ?? 0} />
             <p className="mt-1 text-xs text-gray-500">
-              0 = only on the test night. For example 7: a student who takes the test up to a week late (entering their PIN on the scanner,
+              0 = only on the test night. For example 7: a student who takes the test up to a week late (scanning their test finger,
               or ticked on the test sheet) still gets the test rate. After that the test sheet is locked (the admin can still change it).
             </p>
           </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="test_night_attendance" defaultChecked={s.test_night_attendance ?? true} className="mt-1" />
+            <span>
+              On test night, test takers must still clock in and out to be paid.
+              <span className="block text-xs text-gray-500">On: In, Test, Out (the test scan alone pays nothing that night). Off: taking the test pays the test rate for the night, without clocking in.</span>
+            </span>
+          </label>
           <p className="text-xs text-gray-500">Rate changes apply going forward. Nights already approved keep their rate.</p>
         </section>
 

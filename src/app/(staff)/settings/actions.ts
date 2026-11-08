@@ -45,6 +45,7 @@ export async function saveSettings(formData: FormData) {
   const update = {
     off_holidays: offHolidays,
     test_claim_days: claimDays,
+    test_night_attendance: formData.get("test_night_attendance") === "on",
     daf_start_masechta: dafMasechta,
     daf_start_daf: dafMasechta ? dafNum : null,
     daf_start_date: dafMasechta ? dafDate : null,

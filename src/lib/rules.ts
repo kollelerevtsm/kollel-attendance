@@ -16,6 +16,8 @@ export interface Settings {
   timezone: string;
   off_holidays?: string[];
   test_claim_days?: number;
+  /** On test night, a student who took the test must still clock in and out to be paid. */
+  test_night_attendance?: boolean;
   daf_start_masechta?: string | null;
   daf_start_daf?: number | null;
   daf_start_date?: string | null;
@@ -161,7 +163,7 @@ export function computeNight(input: {
   const { night, scans, settings, tookTestTonight, testRateActive, manualIn, manualOut } = input;
   const rate = testRateActive || tookTestTonight ? settings.test_rate : settings.base_rate;
 
-  if (tookTestTonight) {
+  if (tookTestTonight && !settings.test_night_attendance) {
     return {
       status: "test",
       clockIn: null,

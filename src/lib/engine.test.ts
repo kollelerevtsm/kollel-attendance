@@ -100,16 +100,36 @@ describe("special days", () => {
 });
 
 describe("test ID", () => {
-  it("a scan with the student's test ID counts as his attendance", () => {
+  const student = { id: "a", pin: "1234", test_pin: "91234", active: true, start_date: "2026-01-01" };
+  const scan = (pin: string, at: string) => ({ student_id: "a", user_pin: pin, scanned_at: at });
+
+  it("a test-finger scan is not a clock-in or clock-out", () => {
     const rows = buildRows({
-      nights: ["2026-11-09"],
-      students: [{ id: "a", pin: "1234", test_pin: "91234", active: true, start_date: "2026-01-01" }],
-      scans: [
-        { student_id: null, user_pin: "91234", scanned_at: "2026-11-10T01:25:00Z" },
-        { student_id: null, user_pin: "1234", scanned_at: "2026-11-10T02:30:00Z" },
-      ],
+      nights: ["2026-11-09"], students: [student],
+      scans: [scan("91234", "2026-11-10T01:25:00Z"), scan("1234", "2026-11-10T02:30:00Z")],
       testDates: [], takers: [], manual: new Map(), settings,
     });
-    expect([rows[0].status, rows[0].minutes]).toEqual(["paid", 65]);
+    expect(rows[0].status).toBe("missing_in");
+    expect(rows[0].amount).toBe(0);
+  });
+
+  it("In, Test, Out on test night pays the test rate", () => {
+    const rows = buildRows({
+      nights: ["2026-11-09"], students: [student],
+      scans: [scan("1234", "2026-11-10T01:25:00Z"), scan("91234", "2026-11-10T02:00:00Z"), scan("1234", "2026-11-10T02:35:00Z")],
+      testDates: ["2026-11-09"], takers: [{ test_date: "2026-11-09", student_id: "a" }], manual: new Map(),
+      settings: { ...settings, test_night_attendance: true },
+    });
+    expect([rows[0].status, rows[0].amount]).toEqual(["paid", settings.test_rate]);
+  });
+
+  it("with the setting on, the test scan alone pays nothing that night", () => {
+    const rows = buildRows({
+      nights: ["2026-11-09"], students: [student],
+      scans: [scan("91234", "2026-11-10T02:00:00Z")],
+      testDates: ["2026-11-09"], takers: [{ test_date: "2026-11-09", student_id: "a" }], manual: new Map(),
+      settings: { ...settings, test_night_attendance: true },
+    });
+    expect(rows[0].amount).toBe(0);
   });
 });

@@ -59,12 +59,14 @@ export function buildRows(input: {
   const { nights, students, scans, testDates, takers, manual, settings } = input;
 
   const byPin = new Map<string, string>();
+  const testPins = new Set<string>();
   for (const s of students) {
     byPin.set(s.pin, s.id);
-    if (s.test_pin) byPin.set(s.test_pin, s.id); // a test-finger scan also counts as attendance
+    if (s.test_pin) testPins.add(s.test_pin);
   }
   const scansByStudent = new Map<string, Date[]>();
   for (const sc of scans) {
+    if (testPins.has(sc.user_pin)) continue; // a test-finger scan only marks the test; it is not a clock-in or clock-out
     const id = sc.student_id ?? byPin.get(sc.user_pin);
     if (!id) continue;
     scansByStudent.set(id, [...(scansByStudent.get(id) ?? []), new Date(sc.scanned_at)]);
