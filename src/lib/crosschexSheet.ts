@@ -30,7 +30,8 @@ export function crossChexRows(students: CrossChexStudent[]): CrossChexRow[] {
   for (const s of students) {
     const base = { first: s.first_name ?? "", hireDate: s.start_date ?? null, tel: s.phone ?? "" };
     rows.push({ ...base, last: s.last_name, workNo: s.pin, position: "Regular" });
-    rows.push({ ...base, last: `${s.last_name} TEST`, workNo: s.test_pin || testPinFor(s.pin), position: "Test finger" });
+    // "בחינה" goes first, so it shows even when the scanner cuts off a long name.
+    rows.push({ ...base, first: `בחינה ${s.first_name ?? ""}`.trim(), last: s.last_name, workNo: s.test_pin || testPinFor(s.pin), position: "Test finger" });
   }
   return rows;
 }

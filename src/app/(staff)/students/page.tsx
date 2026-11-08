@@ -24,7 +24,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/student
           </Link>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download */}
           <a className="btn-secondary" href="/students/export">Export to Excel</a>
-          <a className="btn-secondary" href="/api/students/crosschex" title="Upload in CrossChex Cloud: Organization → Employee → Import. Two employees per student: regular ID and test ID.">Export for CrossChex</a>
+          <a className="btn-secondary" href="/api/students/crosschex" title="Upload in CrossChex Cloud: Organization → Employee → Import. Two employees per student: regular ID and test ID (name starts with בחינה).">Export for CrossChex</a>
           {MANAGERS.includes(me.role) && <Link className="btn-secondary" href="/students/import">Import from Excel</Link>}
           {MANAGERS.includes(me.role) && <Link className="btn" href="/students/new">Add student</Link>}
         </div>

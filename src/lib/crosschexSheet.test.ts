@@ -7,7 +7,7 @@ const s = { first_name: "וואלווי", last_name: "ווייסבערג", pin: 
 describe("CrossChex export", () => {
   it("makes a regular and a test employee per student", () => {
     const rows = crossChexRows([s]);
-    expect(rows.map((r) => [r.workNo, r.last])).toEqual([["3869", "ווייסבערג"], ["93869", "ווייסבערג TEST"]]);
+    expect(rows.map((r) => [r.workNo, r.first, r.last])).toEqual([["3869", "וואלווי", "ווייסבערג"], ["93869", "בחינה וואלווי", "ווייסבערג"]]);
   });
 
   it("matches the CrossChex template columns", async () => {
