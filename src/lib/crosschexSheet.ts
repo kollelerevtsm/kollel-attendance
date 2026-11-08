@@ -44,10 +44,11 @@ export async function buildCrossChexWorkbook(students: CrossChexStudent[], depar
     ws.addRow([
       r.first, r.last, r.workNo, department, r.position,
       r.hireDate ? new Date(`${r.hireDate}T00:00:00Z`) : null,
-      null, r.tel, null, null,
+      null, r.tel, r.workNo, null, // Att Password = Work NO.
     ]);
   }
   ws.getColumn(3).numFmt = "@";
+  ws.getColumn(9).numFmt = "@";
   ws.getColumn(6).numFmt = "yyyy-mm-dd";
   [14, 22, 12, 16, 14, 14, 24, 16, 14, 12].forEach((w, i) => (ws.getColumn(i + 1).width = w));
   return Buffer.from(await wb.xlsx.writeBuffer());

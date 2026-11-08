@@ -17,6 +17,7 @@ describe("CrossChex export", () => {
     expect((ws.getRow(1).values as unknown[]).slice(1)).toEqual([...CROSSCHEX_COLUMNS]);
     expect(ws.getRow(3).getCell(3).value).toBe("93870");
     expect(ws.getRow(3).getCell(4).value).toBe("Kollel");
+    expect(ws.getRow(3).getCell(9).value).toBe("93870");
     expect(ws.rowCount).toBe(3);
   });
 });
