@@ -85,6 +85,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
                 <option value="weekly">Weekly</option>
                 <option value="biweekly">Every two weeks</option>
                 <option value="monthly">Monthly</option>
+                <option value="test">בחינה to בחינה (test to test)</option>
               </select>
             </div>
           </div>

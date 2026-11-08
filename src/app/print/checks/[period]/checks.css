@@ -1,0 +1,40 @@
+@font-face {
+  font-family: "GnuMICR";
+  src: url("/fonts/gnumicr/GnuMICR.otf") format("opentype");
+  font-display: block;
+}
+@page { size: letter; margin: 0; }
+.checks-root { background: #e5e7eb; }
+.check-sheet {
+  position: relative;
+  width: 8.5in;
+  height: 11in;
+  margin: 0.25in auto;
+  background: white;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+  overflow: hidden;
+  color: #111;
+  font-family: "Source Sans 3 Variable", Arial, sans-serif;
+}
+.check-inner { position: absolute; inset: 0; }
+.check-face { position: absolute; left: 0; top: 0; width: 8.5in; height: 3.5in; }
+.check-stub { position: absolute; left: 0; width: 8.5in; height: 3.75in; padding: 0.45in 0.5in; font-size: 10pt; }
+.check-stub + .check-stub { border-top: 1px dashed #bbb; }
+.ck-abs { position: absolute; }
+.micr {
+  position: absolute;
+  bottom: 0.1875in;
+  font-family: "GnuMICR";
+  font-size: 0.16644in; /* each character exactly 1/8 inch wide, 0.117 inch tall (E-13B) */
+  line-height: 0.702;  /* puts the baseline at the bottom of the box */
+  white-space: pre;
+  color: #000;
+}
+.ck-rule { border-bottom: 1px solid #333; }
+.ck-label { font-size: 7pt; letter-spacing: 0.04em; text-transform: uppercase; color: #333; }
+@media print {
+  .checks-root { background: none; }
+  .check-sheet { margin: 0; box-shadow: none; break-after: page; }
+  .check-sheet:last-child { break-after: auto; }
+  .no-print { display: none !important; }
+}

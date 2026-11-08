@@ -1,7 +1,8 @@
 // Business rules for attendance, PINs and pay.
 // Pure functions only (no database), so they can be unit-tested.
 
-export type PayPeriod = "weekly" | "biweekly" | "monthly";
+/** "test" = from one בחינה to the day before the next. */
+export type PayPeriod = "weekly" | "biweekly" | "monthly" | "test";
 
 export interface Settings {
   session_start: string; // "20:30" or "20:30:00"
@@ -203,7 +204,12 @@ export function computeNight(input: {
 
   const clockIn = counted[0];
   const clockOut = counted[counted.length - 1];
-  const minutes = Math.floor((clockOut.getTime() - clockIn.getTime()) / 60000);
+  // Only time inside the session counts: arriving early or staying late adds nothing.
+  const sessionStart = zonedTimeToDate(night, settings.session_start, settings.timezone);
+  const sessionEnd = zonedTimeToDate(night, settings.session_end, settings.timezone);
+  const from = Math.max(clockIn.getTime(), sessionStart.getTime());
+  const to = Math.min(clockOut.getTime(), sessionEnd.getTime());
+  const minutes = Math.max(0, Math.floor((to - from) / 60000));
   const inLabel = minutesToLabel(localParts(clockIn, settings.timezone).minutes);
   const outLabel = minutesToLabel(localParts(clockOut, settings.timezone).minutes);
 
@@ -217,7 +223,7 @@ export function computeNight(input: {
     minutes,
     rate,
     amount: 0,
-    reason: `Only ${minutes} min (${inLabel}–${outLabel}); ${settings.required_minutes} required`,
+    reason: `Only ${minutes} min in session (${inLabel}–${outLabel}); ${settings.required_minutes} required`,
   };
 }
 

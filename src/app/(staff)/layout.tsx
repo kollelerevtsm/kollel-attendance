@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Menu, KeyRound, LogOut } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 import { requireRole, STAFF, type Role } from "@/lib/auth";
 import { getSettings, todayIn } from "@/lib/data";
 import { nightsInfo, parshaOfWeek } from "@/lib/hebrew";
 import { SideNav } from "@/components/SideNav";
+import { MobileNav } from "@/components/MobileNav";
 import { Brand } from "@/components/Brand";
 import { signOut } from "../login/actions";
 
@@ -28,7 +29,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   );
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-x-clip">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col overflow-y-auto bg-leather-900 pb-6 lg:flex print:hidden">
         {sidebar}
@@ -36,13 +37,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
 
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
         {/* Top bar */}
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:px-8 print:hidden">
-          <details className="relative lg:hidden">
-            <summary className="flex cursor-pointer list-none items-center rounded-md p-2 hover:bg-gray-100" aria-label="Menu">
-              <Menu size={20} />
-            </summary>
-            <div className="fixed inset-y-0 left-0 z-30 w-64 overflow-y-auto bg-leather-900 pb-6 shadow-xl">{sidebar}</div>
-          </details>
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-line bg-white/95 px-3 backdrop-blur sm:px-4 lg:px-8 print:hidden">
+          <MobileNav>{sidebar}</MobileNav>
           <p className="truncate text-sm text-gray-600" dir="rtl">{parshaOfWeek(today)}</p>
           <details className="relative ml-auto">
             <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-3 hover:bg-gray-100">
@@ -65,7 +61,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           </details>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-5 sm:px-4 sm:py-8 lg:px-8">{children}</main>
       </div>
     </div>
   );

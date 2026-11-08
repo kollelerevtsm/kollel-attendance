@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildRows, periodOf, recentPeriods, rowKey, weekStartOf, weeksIn } from "./engine";
+import { testPeriods } from "./engine";
 import type { Settings } from "./rules";
 
 const settings: Settings = {
@@ -31,12 +32,12 @@ describe("buildRows", () => {
 
   it("applies a manual clock-out", () => {
     const manual = new Map([[rowKey("b", "2026-11-09"), {
-      manual_clock_in: null, manual_clock_out: "2026-11-10T02:45:00Z", manual_note: "forgot to scan", edited_by: "p", edited_at: "x",
+      manual_clock_in: "2026-11-10T01:30:00Z", manual_clock_out: "2026-11-10T02:45:00Z", manual_note: "forgot to scan", edited_by: "p", edited_at: "x",
     }]]);
     const rows = buildRows({ nights: ["2026-11-09"], students, scans, testDates: [], takers: [], manual, settings });
     const b = rows.find((r) => r.student_id === "b")!;
     expect(b.status).toBe("paid");
-    expect(b.minutes).toBe(65);
+    expect(b.minutes).toBe(60); // only 8:30–9:30 counts
     expect(b.reason).toContain("forgot to scan");
   });
 
@@ -89,13 +90,13 @@ describe("special days", () => {
     const rows = buildRows({
       nights: ["2027-04-25"], students: [students[0]],
       scans: [
-        { student_id: "a", user_pin: "1234", scanned_at: "2027-04-25T13:05:00Z" }, // 9:05am EDT
-        { student_id: "a", user_pin: "1234", scanned_at: "2027-04-25T16:20:00Z" }, // 12:20pm
+        { student_id: "a", user_pin: "1234", scanned_at: "2027-04-25T13:25:00Z" }, // 9:25am EDT
+        { student_id: "a", user_pin: "1234", scanned_at: "2027-04-25T16:35:00Z" }, // 12:35pm
       ],
       testDates: [], takers: [], manual: new Map(), settings,
       rulesFor: (n) => rulesFor(n, settings, types, periods).rules,
     });
-    expect([rows[0].status, rows[0].minutes, rows[0].amount]).toEqual(["paid", 195, 40]);
+    expect([rows[0].status, rows[0].minutes, rows[0].amount]).toEqual(["paid", 180, 40]); // session 9:30–12:30
   });
 });
 
@@ -131,5 +132,18 @@ describe("test ID", () => {
       settings: { ...settings, test_night_attendance: true },
     });
     expect(rows[0].amount).toBe(0);
+  });
+});
+
+describe("test-to-test pay periods", () => {
+  it("runs from each test to the day before the next", () => {
+    expect(testPeriods(["2026-11-15", "2026-12-13", "2027-01-10"], "2026-12-20", "2026-11-02", 5)).toEqual([
+      { start: "2026-12-13", end: "2027-01-09" },
+      { start: "2026-11-15", end: "2026-12-12" },
+      { start: "2026-11-02", end: "2026-11-14" },
+    ]);
+  });
+  it("runs the current period to today when no next test is set", () => {
+    expect(testPeriods(["2026-11-15"], "2026-11-20", null, 5)).toEqual([{ start: "2026-11-15", end: "2026-11-20" }]);
   });
 });

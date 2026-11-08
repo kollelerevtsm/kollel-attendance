@@ -132,7 +132,7 @@ function daysBetween(a: string, b: string): number {
 }
 
 /** The pay period containing `date`: [start, end] inclusive. */
-export function periodOf(date: string, kind: PayPeriod): { start: string; end: string } {
+export function periodOf(date: string, kind: Exclude<PayPeriod, "test">): { start: string; end: string } {
   if (kind === "monthly") {
     const [y, m] = date.split("-").map(Number);
     const end = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
@@ -148,7 +148,7 @@ export function periodOf(date: string, kind: PayPeriod): { start: string; end: s
 }
 
 /** The `count` most recent pay periods up to and including the one containing `today`, newest first. */
-export function recentPeriods(today: string, kind: PayPeriod, count: number) {
+export function recentPeriods(today: string, kind: Exclude<PayPeriod, "test">, count: number) {
   const out: { start: string; end: string }[] = [];
   let p = periodOf(today, kind);
   for (let i = 0; i < count; i++) {
@@ -163,4 +163,25 @@ export function weeksIn(start: string, end: string): string[] {
   const out: string[] = [];
   for (let w = weekStartOf(start); w <= end; w = addDays(w, 7)) out.push(w);
   return out;
+}
+
+/**
+ * Pay periods that run from one test (בחינה) to the day before the next, newest first.
+ * The current period runs to the day before the next scheduled test, or to today if none is set.
+ * Nights before the first test form their own period, starting at `firstNight`.
+ */
+export function testPeriods(testDates: string[], today: string, firstNight: string | null, count: number) {
+  const tests = [...new Set(testDates)].sort();
+  const out: { start: string; end: string }[] = [];
+  if (tests.length === 0) {
+    if (firstNight && firstNight <= today) out.push({ start: firstNight, end: today });
+    return out;
+  }
+  if (firstNight && firstNight < tests[0]) out.push({ start: firstNight, end: addDays(tests[0], -1) });
+  for (let i = 0; i < tests.length; i++) {
+    if (tests[i] > today) break;
+    const end = i + 1 < tests.length ? addDays(tests[i + 1], -1) : today;
+    out.push({ start: tests[i], end });
+  }
+  return out.reverse().slice(0, count);
 }

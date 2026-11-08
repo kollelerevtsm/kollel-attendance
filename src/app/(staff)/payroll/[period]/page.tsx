@@ -30,6 +30,9 @@ export default async function PeriodPage({ params, searchParams }: PageProps<"/p
         <div className="flex gap-2 print:hidden">
           <Link className="btn-secondary" href="/payroll">Back</Link>
           <a className="btn-secondary" href={`/payroll/${periodParam(p)}/export`}>Excel (CSV)</a>
+          {PAYERS.includes(me.role) && totals.length > 0 && (
+            <Link className="btn" href={`/print/checks/${periodParam(p)}`}>{isPaid ? "Reprint checks" : "Print checks"}</Link>
+          )}
           <PrintButton />
         </div>
       </PageTitle>
@@ -73,8 +76,13 @@ export default async function PeriodPage({ params, searchParams }: PageProps<"/p
                   <td className="px-4 py-2 text-right">{t.base_nights}</td>
                   <td className="px-4 py-2 text-right">{t.test_nights}</td>
                   <td className="px-4 py-2 text-right font-medium">${t.amount.toFixed(2)}</td>
-                  <td className="px-4 py-2">
-                    {canPay ? <input className="input w-28 py-1" name={`check_${t.student_id}`} required /> : t.check_number ?? ""}
+                  <td className="whitespace-nowrap px-4 py-2">
+                    {canPay ? <input className="input w-28 py-1" name={`check_${t.student_id}`} required /> : t.check_number ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-800">Paid</span> #{t.check_number}
+                        {PAYERS.includes(me.role) && <Link className="text-xs text-brand-700 underline print:hidden" href={`/print/checks/${periodParam(p)}?student=${t.student_id}`}>reprint</Link>}
+                      </span>
+                    ) : ""}
                   </td>
                   <td className="px-4 py-2">
                     {canPay ? <input className="input w-36 py-1" type="date" name={`date_${t.student_id}`} defaultValue={today} /> : t.check_date ? formatDate(t.check_date) : ""}
@@ -96,8 +104,11 @@ export default async function PeriodPage({ params, searchParams }: PageProps<"/p
         </div>
         {canPay && totals.length > 0 && (
           <div className="mt-4 print:hidden">
-            <button className="btn" type="submit">Mark period as paid</button>
-            <p className="mt-1 text-xs text-gray-500">After this, the period is locked. Only the admin can reopen it.</p>
+            <button className="btn-secondary" type="submit">Mark period as paid (hand-written checks)</button>
+            <p className="mt-1 text-xs text-gray-500">
+              Printing checks? Use <strong>Print checks</strong> above instead: the numbers are filled in for you.
+              After a period is marked as paid it is locked. Only the admin can reopen it.
+            </p>
           </div>
         )}
       </form>

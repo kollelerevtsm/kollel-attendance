@@ -30,7 +30,7 @@ export async function saveSettings(formData: FormData) {
   const weekdays = formData.getAll("session_weekdays").map(Number).filter((n) => n >= 0 && n <= 6);
   if (weekdays.length === 0) fail("Choose at least one session night.");
   const payPeriod = g("pay_period");
-  if (!["weekly", "biweekly", "monthly"].includes(payPeriod)) fail("Choose a pay period.");
+  if (!["weekly", "biweekly", "monthly", "test"].includes(payPeriod)) fail("Choose a pay period.");
 
   const offHolidays = formData.getAll("off_holidays").map(String);
   const claimDays = Number(g("test_claim_days") || 0);

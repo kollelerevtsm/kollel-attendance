@@ -2,7 +2,8 @@ import { createClient } from "./supabase/server";
 import { displayName } from "@/lib/names";
 import { getSettings, todayIn } from "./data";
 import { approvedWeeks, sessionNights } from "./attendance";
-import { weekStartOf } from "./engine";
+import { recentPeriods, testPeriods, weekStartOf } from "./engine";
+import type { Settings } from "./rules";
 
 export type PeriodStatus = "paid" | "not_finished" | "needs_approval" | "ready";
 
@@ -67,9 +68,11 @@ export async function periodTotals(start: string, end: string, paidRowId?: strin
   }
 
   const { data: rows } = await supabase
-    .from("attendance_nights").select("student_id,amount,test_rate_applied").gte("night", start).lte("night", end).gt("amount", 0);
+    .from("attendance_nights").select("student_id,night,amount,test_rate_applied").gte("night", start).lte("night", end).gt("amount", 0);
+  const alreadyPaid = await paidNightsCheck(start, end);
   const totals = new Map<string, StudentTotal>();
   for (const r of rows ?? []) {
+    if (alreadyPaid(r.student_id, r.night)) continue; // paid in another period (e.g. before the pay period was changed)
     const t = totals.get(r.student_id) ?? {
       student_id: r.student_id, name: name.get(r.student_id) ?? "?", base_nights: 0, test_nights: 0, amount: 0, check_number: null, check_date: null,
     };
@@ -79,4 +82,57 @@ export async function periodTotals(start: string, end: string, paidRowId?: strin
     totals.set(r.student_id, t);
   }
   return [...totals.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * A test for "was this student already paid for this night?", from every paid period
+ * overlapping [start, end] in which the student got a check.
+ */
+export async function paidNightsCheck(start: string, end: string): Promise<(studentId: string, night: string) => boolean> {
+  const supabase = await createClient();
+  const { data: periods } = await supabase
+    .from("pay_periods").select("id,period_start,period_end").eq("status", "paid").lte("period_start", end).gte("period_end", start);
+  if (!periods?.length) return () => false;
+  const { data: pays } = await supabase.from("payments").select("pay_period_id,student_id").in("pay_period_id", periods.map((p) => p.id));
+  const ranges = new Map<string, { start: string; end: string }[]>();
+  const byId = new Map(periods.map((p) => [p.id as string, p]));
+  for (const pay of pays ?? []) {
+    const p = byId.get(pay.pay_period_id)!;
+    ranges.set(pay.student_id, [...(ranges.get(pay.student_id) ?? []), { start: p.period_start, end: p.period_end }]);
+  }
+  return (studentId, night) => (ranges.get(studentId) ?? []).some((r) => r.start <= night && night <= r.end);
+}
+
+/** The most recent pay periods, newest first: calendar periods, or test to test. */
+export async function listPeriods(settings: Settings, today: string, count: number) {
+  if (settings.pay_period !== "test") return recentPeriods(today, settings.pay_period, count);
+  const supabase = await createClient();
+  const [{ data: tests }, { data: first }] = await Promise.all([
+    supabase.from("calendar_days").select("day").eq("is_test_date", true),
+    supabase.from("attendance_nights").select("night").order("night").limit(1),
+  ]);
+  return testPeriods((tests ?? []).map((t) => t.day as string), today, (first?.[0]?.night as string) ?? null, count);
+}
+
+/** What each student is owed right now: every paid night up to today not yet covered by a check. */
+export async function owedNow(today: string): Promise<{ student_id: string; name: string; nights: number; amount: number; since: string }[]> {
+  const supabase = await createClient();
+  const [{ data: students }, { data: rows }] = await Promise.all([
+    supabase.from("students").select("id,first_name,last_name"),
+    supabase.from("attendance_nights").select("student_id,night,amount").lte("night", today).gt("amount", 0),
+  ]);
+  const name = new Map((students ?? []).map((s) => [s.id as string, displayName(s.first_name, s.last_name)]));
+  const nights = (rows ?? []).map((r) => r.night as string).sort();
+  if (!nights.length) return [];
+  const alreadyPaid = await paidNightsCheck(nights[0], today);
+  const owed = new Map<string, { student_id: string; name: string; nights: number; amount: number; since: string }>();
+  for (const r of rows ?? []) {
+    if (alreadyPaid(r.student_id, r.night)) continue;
+    const o = owed.get(r.student_id) ?? { student_id: r.student_id, name: name.get(r.student_id) ?? "?", nights: 0, amount: 0, since: r.night };
+    o.nights++;
+    o.amount += Number(r.amount);
+    if (r.night < o.since) o.since = r.night;
+    owed.set(r.student_id, o);
+  }
+  return [...owed.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -62,8 +62,14 @@ describe("computeNight", () => {
   it("pays a full hour", () => {
     const r = computeNight({ ...base, scans: [at("2026-11-10T01:28:00Z"), at("2026-11-10T02:31:00Z")] });
     expect(r.status).toBe("paid");
-    expect(r.minutes).toBe(63);
+    expect(r.minutes).toBe(60); // 8:28–9:31 counts only 8:30–9:30
     expect(r.amount).toBe(15);
+  });
+
+  it("does not count time before the session starts", () => {
+    // 7:45pm–9:20pm: 95 minutes on the clock, but only 50 inside 8:30–9:30.
+    const r = computeNight({ ...base, scans: [at("2026-11-10T00:45:00Z"), at("2026-11-10T02:20:00Z")] });
+    expect([r.status, r.minutes, r.amount]).toEqual(["short", 50, 0]);
   });
 
   it("pays the test rate when active", () => {
