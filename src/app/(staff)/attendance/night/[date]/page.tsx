@@ -21,13 +21,17 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
 
   const [{ data: rows }, { data: students }, { data: scans }] = await Promise.all([
     supabase.from("attendance_nights").select("*").eq("night", date),
-    supabase.from("students").select("id,first_name,last_name,pin"),
+    supabase.from("students").select("id,first_name,last_name,pin,test_pin"),
     supabase.from("scans").select("id,user_pin,student_id,scanned_at,source,verify_method,raw")
       .gte("scanned_at", `${date}T00:00:00Z`).lte("scanned_at", `${addDays(date, 2)}T00:00:00Z`).order("scanned_at"),
   ]);
 
   const nameOf = new Map((students ?? []).map((s) => [s.id, displayName(s.first_name, s.last_name)]));
-  const idByPin = new Map((students ?? []).map((s) => [s.pin, s.id]));
+  const idByPin = new Map<string, string>();
+  for (const s of students ?? []) {
+    idByPin.set(s.pin, s.id);
+    if (s.test_pin) idByPin.set(s.test_pin, s.id);
+  }
   const time = (iso: string | null) => (iso ? minutesToLabel(localParts(new Date(iso), timezone).minutes) : "—");
   const hhmm = (iso: string | null) => {
     if (!iso) return "";

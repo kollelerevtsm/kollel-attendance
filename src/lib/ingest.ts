@@ -11,8 +11,18 @@ import { addDays, localParts, testOpenOn } from "./rules";
 export async function ingestScans(scans: ScanRecord[], supabase: SupabaseClient, source: "webhook" | "api_sync" = "webhook"): Promise<{ saved: number; testTakers: number }> {
   if (scans.length === 0) return { saved: 0, testTakers: 0 };
   const settings = await getSettings(supabase);
-  const { data: students } = await supabase.from("students").select("id,pin");
-  const byPin = new Map((students ?? []).map((s) => [s.pin as string, s.id as string]));
+  const { data: students } = await supabase.from("students").select("id,pin,test_pin");
+  const byPin = new Map<string, string>();
+  const testPins = new Set<string>();
+  for (const s of students ?? []) {
+    byPin.set(s.pin as string, s.id as string);
+    if (s.test_pin) {
+      byPin.set(s.test_pin as string, s.id as string);
+      testPins.add(s.test_pin as string);
+    }
+  }
+  // Scans with a student's test ID are marked as such.
+  for (const s of scans) if (testPins.has(s.user_pin)) s.verify_method = "test ID";
 
   const rows = scans.map((s) => ({
     external_id: s.external_id,
@@ -40,7 +50,7 @@ export async function ingestScans(scans: ScanRecord[], supabase: SupabaseClient,
   const testDates = (tests ?? []).map((t) => t.day as string);
   const takers = scans
     .map((s, i) => ({ s, test: testOpenOn(nights[i], testDates, claimDays) }))
-    .filter(({ s, test }) => s.verify_method === "pin" && test && byPin.has(s.user_pin))
+    .filter(({ s, test }) => (s.verify_method === "test ID" || s.verify_method === "pin") && test && byPin.has(s.user_pin))
     .map(({ s, test }) => ({ test_date: test!, student_id: byPin.get(s.user_pin)!, source: "scanner" }));
   if (takers.length) await supabase.from("test_takers").upsert(takers, { onConflict: "test_date,student_id", ignoreDuplicates: true });
 

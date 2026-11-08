@@ -13,6 +13,7 @@ export const COLUMNS = [
   { key: "father_in_law_name", header: "Father-in-law's name", width: 20 },
   { key: "start_date", header: "Start date", width: 12 },
   { key: "pin", header: "PIN", width: 8 },
+  { key: "test_pin", header: "Test ID", width: 10 },
   { key: "active", header: "Active", width: 8 },
 ] as const;
 
@@ -36,6 +37,7 @@ export interface ExistingStudent {
   phone: string;
   email: string | null;
   pin: string;
+  test_pin?: string | null;
 }
 
 export interface ImportPlanRow {
@@ -58,7 +60,7 @@ const ALIASES: Record<string, ColumnKey> = {
   fathersname: "father_name", father: "father_name", fathername: "father_name",
   fatherinlawsname: "father_in_law_name", fatherinlaw: "father_in_law_name", fatherinlawname: "father_in_law_name", shver: "father_in_law_name",
   startdate: "start_date", start: "start_date",
-  pin: "pin", userid: "pin",
+  pin: "pin", userid: "pin", testid: "test_pin",
   active: "active",
 };
 
@@ -132,7 +134,7 @@ export function parseRows(rows: unknown[][]): { students: { line: number; s: She
 export function planImport(parsed: { line: number; s: SheetStudent | null; error?: string }[], existing: ExistingStudent[]): ImportPlanRow[] {
   const byPhone = new Map(existing.map((e) => [digitsOnly(e.phone), e]));
   const byEmail = new Map(existing.filter((e) => e.email).map((e) => [e.email!.toLowerCase(), e]));
-  const taken = new Set(existing.map((e) => e.pin));
+  const taken = new Set(existing.flatMap((e) => [e.pin, e.test_pin ?? `9${e.pin}`]));
   const seenPhones = new Set<string>();
   const plan: ImportPlanRow[] = [];
 
@@ -173,10 +175,15 @@ export function planImport(parsed: { line: number; s: SheetStudent | null; error
       }
       pin = s.pin;
     } else {
-      const chosen = choosePin(phone, taken);
+      let chosen = choosePin(phone, taken);
+      while (taken.has(`9${chosen.pin}`)) {
+        taken.add(chosen.pin);
+        chosen = choosePin(phone, taken);
+      }
       pin = chosen.pin;
     }
     taken.add(pin);
+    taken.add(`9${pin}`);
     plan.push({ line, action: "add", data: { ...s, pin }, name, message: pin.length > 4 ? `Add (PIN ${pin}, 5 digits because the last 4 were taken)` : `Add (PIN ${pin})` });
   }
   return plan;

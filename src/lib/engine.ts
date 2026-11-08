@@ -6,6 +6,7 @@ import { addDays, computeNight, testRateApplies, weekday, type NightStatus, type
 export interface EngineStudent {
   id: string;
   pin: string;
+  test_pin?: string | null;
   active: boolean;
   start_date: string;
 }
@@ -57,7 +58,11 @@ export function buildRows(input: {
 }): AttendanceRow[] {
   const { nights, students, scans, testDates, takers, manual, settings } = input;
 
-  const byPin = new Map(students.map((s) => [s.pin, s.id]));
+  const byPin = new Map<string, string>();
+  for (const s of students) {
+    byPin.set(s.pin, s.id);
+    if (s.test_pin) byPin.set(s.test_pin, s.id); // a test-finger scan also counts as attendance
+  }
   const scansByStudent = new Map<string, Date[]>();
   for (const sc of scans) {
     const id = sc.student_id ?? byPin.get(sc.user_pin);

@@ -14,7 +14,7 @@ export interface PreviewState {
 
 async function existingStudents() {
   const supabase = await createClient();
-  const { data } = await supabase.from("students").select("id,phone,email,pin");
+  const { data } = await supabase.from("students").select("id,phone,email,pin,test_pin");
   return data ?? [];
 }
 
@@ -61,7 +61,7 @@ export async function applyImport(_prev: PreviewState, formData: FormData): Prom
   for (const row of plan) {
     if (row.action === "error" || !row.data) continue;
     const { start_date, ...rest } = row.data;
-    const values = { ...rest, ...(start_date ? { start_date } : {}) };
+    const values = { ...rest, ...(start_date ? { start_date } : {}), ...(row.action === "add" ? { test_pin: `9${rest.pin}` } : {}) };
     const { error } = row.action === "add"
       ? await supabase.from("students").insert(values)
       : await supabase.from("students").update(values).eq("id", row.id!);

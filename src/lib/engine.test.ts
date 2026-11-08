@@ -98,3 +98,18 @@ describe("special days", () => {
     expect([rows[0].status, rows[0].minutes, rows[0].amount]).toEqual(["paid", 195, 40]);
   });
 });
+
+describe("test ID", () => {
+  it("a scan with the student's test ID counts as his attendance", () => {
+    const rows = buildRows({
+      nights: ["2026-11-09"],
+      students: [{ id: "a", pin: "1234", test_pin: "91234", active: true, start_date: "2026-01-01" }],
+      scans: [
+        { student_id: null, user_pin: "91234", scanned_at: "2026-11-10T01:25:00Z" },
+        { student_id: null, user_pin: "1234", scanned_at: "2026-11-10T02:30:00Z" },
+      ],
+      testDates: [], takers: [], manual: new Map(), settings,
+    });
+    expect([rows[0].status, rows[0].minutes]).toEqual(["paid", 65]);
+  });
+});

@@ -8,6 +8,7 @@ export interface StudentRow {
   father_name: string | null;
   father_in_law_name: string | null;
   pin: string;
+  test_pin: string | null;
   active: boolean;
   start_date: string;
   fingerprint_enrolled: boolean;
@@ -48,6 +49,13 @@ export function StudentForm({ student, action, canEdit }: {
             <label className="label" htmlFor="pin">PIN / scanner user ID</label>
             <input className="input font-mono" id="pin" name="pin" defaultValue={student.pin} required pattern="[0-9]{4,10}" />
             <p className="mt-1 text-xs text-gray-500">If you change this, re-enroll the fingerprint on the scanner under the new number.</p>
+          </div>
+        ) : null}
+        {student ? (
+          <div>
+            <label className="label" htmlFor="test_pin">Test ID (scanner ID for the test finger)</label>
+            <input className="input font-mono" id="test_pin" name="test_pin" defaultValue={student.test_pin ?? `9${student.pin}`} required pattern="[0-9]{4,12}" />
+            <p className="mt-1 text-xs text-gray-500">Enroll a different finger on the scanner under this number. Scanning it on a test night marks him as having taken the test.</p>
           </div>
         ) : (
           <div className="flex items-end text-sm text-gray-500">

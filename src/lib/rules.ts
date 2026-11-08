@@ -253,3 +253,8 @@ export function testOpenOn(night: string, testDates: string[], claimDays: number
   for (const t of testDates) if (t <= night && (latest === null || t > latest)) latest = t;
   return latest !== null && night <= addDays(latest, Math.max(0, claimDays)) ? latest : null;
 }
+
+/** The scanner ID used with a student's "test finger": 9 followed by his PIN. */
+export function testPinFor(pin: string): string {
+  return `9${pin}`;
+}

@@ -34,6 +34,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/student
             <tr>
               <th className="px-4 py-2">Name</th>
               <th className="px-4 py-2">PIN</th>
+              <th className="px-4 py-2">Test ID</th>
               <th className="px-4 py-2">Phone</th>
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Fingerprint</th>
@@ -49,6 +50,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/student
                   {!s.active && <span className="ml-2 text-xs text-gray-400">inactive</span>}
                 </td>
                 <td className="px-4 py-2 font-mono">{s.pin}</td>
+                <td className="px-4 py-2 font-mono text-gray-500">{s.test_pin ?? ""}</td>
                 <td className="px-4 py-2">{s.phone}</td>
                 <td className="px-4 py-2">{s.email ?? <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-2">
@@ -57,7 +59,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/student
               </tr>
             ))}
             {students.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No students yet.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No students yet.</td></tr>
             )}
           </tbody>
         </table>

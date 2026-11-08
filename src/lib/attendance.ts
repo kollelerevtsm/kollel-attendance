@@ -43,7 +43,7 @@ export async function recalculate(start: string, end: string, client?: SupabaseC
   const nights = allNights.filter((n) => !approved.has(weekStartOf(n)));
 
   const [students, scans, tests, takers, existing, types, periods] = await Promise.all([
-    supabase.from("students").select("id,pin,active,start_date"),
+    supabase.from("students").select("id,pin,test_pin,active,start_date"),
     supabase
       .from("scans")
       .select("student_id,user_pin,scanned_at")
