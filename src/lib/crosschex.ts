@@ -37,7 +37,7 @@ export function toScan(r: unknown): ScanRecord | null {
     external_id: String(r.uuid ?? `${serial}-${pin}-${time}`),
     user_pin: pin.replace(/^0+(?=\d{4})/, ""), // the device may pad IDs with zeros
     scanned_at: new Date(time).toISOString(),
-    verify_method: verifyMethod(r.checktype),
+    verify_method: verifyMethod(r.checktype ?? r.check_type ?? r.verify_type ?? r.verifymode),
     device_serial: serial,
     raw: r,
   };
