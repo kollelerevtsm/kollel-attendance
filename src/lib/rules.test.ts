@@ -173,3 +173,15 @@ describe("displayName", () => {
     expect(displayName("Moshe", "Cohen")).toBe("Cohen, Moshe");
   });
 });
+
+describe("PINs without a leading zero", () => {
+  it("drops the leading zero like CrossChex does", () => {
+    expect(choosePin("718-555-0243", []).pin).toBe("243");
+  });
+  it("keeps four digits when there is no leading zero", () => {
+    expect(choosePin("718-555-3869", []).pin).toBe("3869");
+  });
+  it("uses a longer number when the short one is taken", () => {
+    expect(choosePin("718-555-0243", ["243"]).pin).toBe("50243");
+  });
+});

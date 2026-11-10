@@ -5,7 +5,7 @@ import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, getSettings } from "@/lib/data";
 import { weekStartOf } from "@/lib/engine";
-import { addDays, localParts, minutesToLabel, type NightStatus } from "@/lib/rules";
+import { addDays, localParts, minutesToLabel, normalizePin, type NightStatus } from "@/lib/rules";
 import { Notice, PageTitle } from "@/components/Notice";
 import { StatusChip } from "@/components/StatusChip";
 import { addManualScan, clearFix, deleteManualScan, saveFix } from "../../actions";
@@ -29,7 +29,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
   const nameOf = new Map((students ?? []).map((s) => [s.id, displayName(s.first_name, s.last_name)]));
   const idByPin = new Map<string, string>();
   for (const s of students ?? []) {
-    idByPin.set(s.pin, s.id);
+    idByPin.set(normalizePin(s.pin), s.id);
     if (s.test_pin) idByPin.set(s.test_pin, s.id);
   }
   const time = (iso: string | null) => (iso ? minutesToLabel(localParts(new Date(iso), timezone).minutes) : "—");
@@ -109,7 +109,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
           </thead>
           <tbody>
             {nightScans.map((s) => {
-              const sid = s.student_id ?? idByPin.get(s.user_pin);
+              const sid = s.student_id ?? idByPin.get(normalizePin(s.user_pin));
               return (
                 <tr key={s.id} className="border-b last:border-0">
                   <td className="px-3 py-2">{time(s.scanned_at)}</td>

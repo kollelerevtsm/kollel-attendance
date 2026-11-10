@@ -34,6 +34,11 @@ export function digitsOnly(phone: string): string {
  * The PIN is the last 4 digits of the phone number. If another student
  * already has those 4 digits, use the last 5 (then 6…) instead.
  */
+/** An ID the way CrossChex stores it: no leading zeros ("0243" → "243"). */
+export function normalizePin(pin: string): string {
+  return pin.replace(/^0+(?=\d)/, "");
+}
+
 export function choosePin(
   phone: string,
   takenPins: Iterable<string>,
@@ -44,7 +49,9 @@ export function choosePin(
   }
   const taken = new Set(takenPins);
   for (let len = 4; len <= digits.length; len++) {
-    const pin = digits.slice(-len);
+    // CrossChex drops leading zeros from employee IDs (0243 becomes 243), so we do too.
+    const pin = normalizePin(digits.slice(-len));
+    if (pin.length < 3) continue;
     if (!taken.has(pin)) return { pin, extended: len > 4 };
   }
   throw new Error("Every PIN from this phone number is already in use.");

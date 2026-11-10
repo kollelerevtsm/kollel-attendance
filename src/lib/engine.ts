@@ -1,7 +1,7 @@
 // Turns scans into one attendance row per student per session night.
 // Pure function: the database loading/saving lives in attendance.ts.
 
-import { addDays, computeNight, testRateApplies, weekday, type NightStatus, type PayPeriod, type Settings } from "./rules";
+import { addDays, computeNight, normalizePin, testRateApplies, weekday, type NightStatus, type PayPeriod, type Settings } from "./rules";
 
 export interface EngineStudent {
   id: string;
@@ -61,7 +61,7 @@ export function buildRows(input: {
   const byPin = new Map<string, string>();
   const testPins = new Set<string>();
   for (const s of students) {
-    byPin.set(s.pin, s.id);
+    byPin.set(normalizePin(s.pin), s.id);
     if (s.test_pin) testPins.add(s.test_pin);
   }
   const scansByStudent = new Map<string, Date[]>();

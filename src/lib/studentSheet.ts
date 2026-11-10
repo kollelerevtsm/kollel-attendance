@@ -113,7 +113,7 @@ export function parseRows(rows: unknown[][]): { students: { line: number; s: She
       father_name: get("father_name") || null,
       father_in_law_name: get("father_in_law_name") || null,
       start_date: toDate(get("start_date")),
-      pin: digitsOnly(get("pin")) || null,
+      pin: digitsOnly(get("pin")).replace(/^0+(?=\d)/, "") || null,
       active: !/^(no|n|false|0|inactive)$/i.test(get("active")),
     };
     let error: string | undefined;
@@ -121,7 +121,7 @@ export function parseRows(rows: unknown[][]): { students: { line: number; s: She
     else if (digitsOnly(s.phone).length < 4) error = "Phone number is missing or too short";
     else if (s.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.email)) error = "Email doesn't look right";
     else if (get("start_date") && !s.start_date) error = "Start date should look like 2026-11-03 or 11/3/2026";
-    else if (s.pin && !/^\d{4,10}$/.test(s.pin)) error = "PIN must be 4 or more digits";
+    else if (s.pin && !/^[1-9]\d{2,9}$/.test(s.pin)) error = "PIN must be 3 or more digits";
     out.push({ line, s: error ? null : s, error });
   });
   return { students: out, missingColumns };

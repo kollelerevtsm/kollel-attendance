@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireRole, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { choosePin, testPinFor } from "@/lib/rules";
+import { choosePin, normalizePin, testPinFor } from "@/lib/rules";
 
 function fields(formData: FormData) {
   const s = (k: string) => {
@@ -77,12 +77,12 @@ export async function updateStudent(formData: FormData) {
   const supabase = await createClient();
   const id = String(formData.get("id"));
   const f = fields(formData);
-  const pin = String(formData.get("pin") ?? "").trim();
-  const testPin = String(formData.get("test_pin") ?? "").trim();
+  const pin = normalizePin(String(formData.get("pin") ?? "").trim());
+  const testPin = normalizePin(String(formData.get("test_pin") ?? "").trim());
   const path = `/students/${id}`;
   if (!f.first_name || !f.last_name || !f.phone) back(path, "First name, last name and phone are required.");
-  if (!/^[0-9]{4,10}$/.test(pin)) back(path, "PIN must be 4 or more digits.");
-  if (!/^[0-9]{4,12}$/.test(testPin)) back(path, "Test ID must be 4 or more digits.");
+  if (!/^[1-9][0-9]{2,9}$/.test(pin)) back(path, "PIN must be 3 or more digits and can't start with 0.");
+  if (!/^[1-9][0-9]{2,11}$/.test(testPin)) back(path, "Test ID must be 3 or more digits and can't start with 0.");
   if (testPin === pin) back(path, "The test ID must be different from the PIN.");
   {
     const sb = await createClient();
