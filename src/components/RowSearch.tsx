@@ -32,7 +32,7 @@ export function RowSearch({ target, placeholder = "Search name or PIN" }: { targ
     <div className="mb-3 flex flex-wrap items-center gap-3 print:hidden">
       <div className="relative w-full max-w-sm">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden />
-        <input className="input pl-9 pr-9" type="search" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" dir="auto" />
+        <input className="input !pl-9 !pr-9" type="search" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" dir="auto" />
         {q && (
           <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-700" onClick={() => setQ("")} aria-label="Clear search">
             <X size={14} />

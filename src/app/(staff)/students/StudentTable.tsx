@@ -59,7 +59,7 @@ export function StudentTable({ students }: { students: StudentRow[] }) {
         <div className="relative w-full max-w-sm">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden />
           <input
-            className="input pl-9 pr-9"
+            className="input !pl-9 !pr-9"
             type="search"
             placeholder="Search name, PIN, phone or email"
             value={q}
