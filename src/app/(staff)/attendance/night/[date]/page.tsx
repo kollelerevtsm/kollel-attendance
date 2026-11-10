@@ -7,6 +7,7 @@ import { formatDate, getSettings } from "@/lib/data";
 import { weekStartOf } from "@/lib/engine";
 import { addDays, localParts, minutesToLabel, normalizePin, type NightStatus } from "@/lib/rules";
 import { Notice, PageTitle } from "@/components/Notice";
+import { RowSearch } from "@/components/RowSearch";
 import { StatusChip } from "@/components/StatusChip";
 import { addManualScan, clearFix, deleteManualScan, saveFix } from "../../actions";
 
