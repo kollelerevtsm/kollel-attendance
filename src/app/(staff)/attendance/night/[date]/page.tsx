@@ -27,6 +27,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
   ]);
 
   const nameOf = new Map((students ?? []).map((s) => [s.id, displayName(s.first_name, s.last_name)]));
+  const searchOf = new Map((students ?? []).map((s) => [s.id, `${displayName(s.first_name, s.last_name)} ${s.first_name} ${s.last_name} ${s.pin} ${s.test_pin ?? ""}`]));
   const idByPin = new Map<string, string>();
   for (const s of students ?? []) {
     idByPin.set(normalizePin(s.pin), s.id);
@@ -51,6 +52,8 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
         message={typeof sp.message === "string" ? sp.message : undefined}
       />
 
+      <RowSearch target="night-page" />
+      <div id="night-page">
       <div className="card mb-6 overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead className="border-b bg-gray-50 text-left text-gray-600">
@@ -66,7 +69,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
           </thead>
           <tbody>
             {sorted.map((r) => (
-              <tr key={r.student_id} className="border-b align-top last:border-0">
+              <tr key={r.student_id} className="border-b align-top last:border-0" data-search={searchOf.get(r.student_id) ?? ""}>
                 <td className="px-3 py-2 whitespace-nowrap" dir="auto">{nameOf.get(r.student_id)}</td>
                 <td className="px-3 py-2">{time(r.clock_in)}</td>
                 <td className="px-3 py-2">{time(r.clock_out)}</td>
@@ -111,7 +114,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
             {nightScans.map((s) => {
               const sid = s.student_id ?? idByPin.get(normalizePin(s.user_pin));
               return (
-                <tr key={s.id} className="border-b last:border-0">
+                <tr key={s.id} className="border-b last:border-0" data-search={`${sid ? searchOf.get(sid) ?? "" : ""} ${s.user_pin}`}>
                   <td className="px-3 py-2">{time(s.scanned_at)}</td>
                   <td className="px-3 py-2 font-mono">{s.user_pin}</td>
                   <td className="px-3 py-2" dir="auto">{sid ? nameOf.get(sid) : <span className="text-red-700">Unknown PIN</span>}</td>
@@ -157,6 +160,7 @@ export default async function NightPage({ params, searchParams }: PageProps<"/at
           <p className="w-full text-xs text-gray-500">Use this if the scanner was down, or to try out the system before the scanner is connected.</p>
         </form>
       )}
+      </div>
     </>
   );
 }

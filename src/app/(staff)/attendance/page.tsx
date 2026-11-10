@@ -8,6 +8,7 @@ import { parshaOfWeek } from "@/lib/hebrew";
 import { weekStartOf } from "@/lib/engine";
 import { addDays, type NightStatus } from "@/lib/rules";
 import { Notice, PageTitle } from "@/components/Notice";
+import { RowSearch } from "@/components/RowSearch";
 import { NEEDS_ATTENTION, StatusChip } from "@/components/StatusChip";
 import { approveWeek, pullScansNow, unapproveWeek } from "./actions";
 
@@ -28,7 +29,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
   const supabase = await createClient();
   const [nights, { data: students }, { data: rows }, { data: approval }] = await Promise.all([
     sessionNights(week, end),
-    supabase.from("students").select("id,first_name,last_name,active").order("last_name").order("first_name"),
+    supabase.from("students").select("id,first_name,last_name,active,pin,test_pin").order("last_name").order("first_name"),
     supabase.from("attendance_nights").select("student_id,night,status,amount,reason,manual_note").gte("night", week).lte("night", end),
     supabase.from("week_approvals").select("approved_at").eq("week_start", week).maybeSingle(),
   ]);
@@ -83,8 +84,10 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
       {nights.length === 0 ? (
         <div className="card text-gray-500">No session nights this week.</div>
       ) : (
+        <>
+        <RowSearch target="week-table" />
         <div className="card overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table id="week-table" className="w-full text-sm">
             <thead className="border-b bg-gray-50 text-left text-gray-600">
               <tr>
                 <th className="px-3 py-2">Student</th>
@@ -100,7 +103,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
               {shown.map((s) => {
                 const sum = nights.reduce((acc, n) => acc + Number(byKey.get(`${s.id}|${n}`)?.amount ?? 0), 0);
                 return (
-                  <tr key={s.id} className="border-b last:border-0">
+                  <tr key={s.id} className="border-b last:border-0" data-search={`${displayName(s.first_name, s.last_name)} ${s.first_name} ${s.last_name} ${s.pin} ${s.test_pin ?? ""}`}>
                     <td className="px-3 py-2 whitespace-nowrap" dir="auto">{displayName(s.first_name, s.last_name)}</td>
                     {nights.map((n) => {
                       const r = byKey.get(`${s.id}|${n}`);
@@ -124,6 +127,7 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
             </tbody>
           </table>
         </div>
+        </>
       )}
       <p className="mt-3 text-xs text-gray-500">Hover over a night to see the reason. ✎ = fixed by hand. Click a date to see scans and make fixes.</p>
     </>
