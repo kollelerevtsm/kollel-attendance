@@ -69,7 +69,7 @@ export async function createStudent(formData: FormData) {
   const msg = pin.extended
     ? `Student added. The last 4 digits were already taken, so this student's PIN is ${pin.pin} (5 digits). Test ID: ${testPinFor(pin.pin)}.`
     : `Student added with PIN ${pin.pin} and test ID ${testPinFor(pin.pin)}.`;
-  redirect(`/students/${data!.id}?message=${encodeURIComponent(msg)}`);
+  redirect(`/students?message=${encodeURIComponent(msg)}`);
 }
 
 export async function updateStudent(formData: FormData) {

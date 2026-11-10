@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole, STAFF, MANAGERS } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { PageTitle } from "@/components/Notice";
+import { Notice, PageTitle } from "@/components/Notice";
 import type { StudentRow } from "./StudentForm";
 import { StudentTable } from "./StudentTable";
 
@@ -29,6 +29,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/student
           {MANAGERS.includes(me.role) && <Link className="btn" href="/students/new">Add student</Link>}
         </div>
       </PageTitle>
+      <Notice message={typeof sp.message === "string" ? sp.message : undefined} />
       <StudentTable students={students} />
     </>
   );
